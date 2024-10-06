@@ -10,6 +10,7 @@
 #include <pixels.hpp>
 #include <rtc.hpp>
 #include <settings.hpp>
+#include <weather.hpp>
 
 WebServer restServer(80);
 bool display = true;
@@ -63,9 +64,10 @@ void setup() {
 
     displayMgr->Add(std::make_shared<SetTime>(rtc));
     displayMgr->Add(std::make_shared<Clock>(rtc));
+    displayMgr->Add(std::make_shared<Weather>(rtc));
     displayMgr->Add(std::make_shared<ConfigMenu>());
 
-    // 0 = SetTime   <=>   1 = Clock   <=>   2 = ConfigMenu
+    // 0 = SetTime   <=>   1 = Clock   <=>   2 = Weather   <=>   3 = ConfigMenu
     displayMgr->SetDefaultAndActivateDisplay(1);
 
     for (;;) {  // forever, instead of loop(), because I avoid globals ;) [nonik0] If anyone reads this--I know I stomped all over this, but it's a quick hack. I would keep things idiomatic at release-level quality. :)

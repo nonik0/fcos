@@ -207,6 +207,17 @@ class Pixels {
     void DrawSecondLEDs(const int second,
                         const RgbColor color,
                         const int brightestLED = 0);  // 0,1,2
+
+    enum WeatherType {
+        SUNNY,
+        CLOUDY,
+        RAINY,
+        SNOWY,
+        THUNDERSTORM,
+        FOGGY,
+    };
+
+    void DrawWeatherLEDs(const WeatherType type, const int cycle);
 #endif
     void Move(const int fromCol,
               const int fromRow,

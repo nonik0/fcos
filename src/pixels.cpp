@@ -364,6 +364,27 @@ void Pixels::DrawSecondLEDs(const int second,
     }
 #endif
 }
+
+void Pixels::DrawWeatherLEDs(const WeatherType type, const int cycle) {
+    switch (type) {
+        case SUNNY:
+            for (int i = 0; i < RING_SIZE; ++i) {
+                DrawRingLED(0, i, YELLOW);
+                if (cycle >= 2) {
+                    DrawRingLED(1, i, YELLOW);
+                }
+            }
+            break;
+        case RAINY:
+            for (int i = 4; i < 7; i++) {
+                int dropCycle = cycle + i % 3;
+                DrawRingLED(dropCycle, i, BLUE);
+            }
+            break;
+        default:
+            return;
+    }
+}
 #endif
 
 void Pixels::Move(const int fromCol,

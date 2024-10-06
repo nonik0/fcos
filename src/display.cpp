@@ -35,7 +35,7 @@ void DisplayManager::Update() {
         cur->Update();
         if (cur->IsDone() ||
             (cur->ShouldTimeout() && GetTimeSinceButtonPress() >= TIMEOUT_MS &&
-             m_activeDisplay != m_defaultDisplay)) {
+             (m_activeDisplay != m_defaultDisplay && m_activeDisplay != 2))) { // TODO: remove hardcoded 2 for weather display
             cur->Timeout();
             cur->m_done = false;
             if (m_isTempDisplay) {
