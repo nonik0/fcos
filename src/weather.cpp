@@ -1,10 +1,10 @@
 #include <weather.hpp>
 
-// void Weather::UpdateConditions() {
+// void Weather::UpdateConditions(async args) {
 //     try {
 //         WiFiClient wifiClient;
 //         HTTPClient httpClient;
-//         String requestUri = "https://api.tomorrow.io/v4/weather/forecast?location=98112&timesteps=daily&apikey=aIZ4ID3MjSTlSgei5t4oNi4lTfQRucl4";
+//         String requestUri = "https://api.tomorrow.io/v4/weather/forecast?location=98112&timesteps=daily&apikey=oops";
 
 //         httpClient.begin(wifiClient, requestUri);
 
@@ -52,32 +52,34 @@
 //     }
 // }
 
-void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, String conditions) {
+void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, int8_t humidity, String conditions) {
     m_temperatureLow = tempLow;
     m_temperatureHigh = tempHigh;
+    m_humidity = humidity;
     
+    // these are Home Assistant forecast conditions
     if (conditions == "sunny" || conditions == "clear-night")
-        m_weatherType = WeatherType::SUNNY;
+        m_conditions = WeatherConditions::SUNNY;
     else if (conditions == "cloudy" || conditions == "exceptional")
-        m_weatherType = WeatherType::CLOUDY;
+        m_conditions = WeatherConditions::CLOUDY;
     else if (conditions == "partlycloudy")
-        m_weatherType = WeatherType::PARTLY_CLOUDY;
+        m_conditions = WeatherConditions::PARTLY_CLOUDY;
     else if (conditions == "rainy" || conditions == "pouring")
-        m_weatherType = WeatherType::RAINY;
+        m_conditions = WeatherConditions::RAINY;
     else if (conditions == "snowy")
-        m_weatherType = WeatherType::SNOWY;
+        m_conditions = WeatherConditions::SNOWY;
     else if (conditions == "windy" || conditions == "windy-variant")
-        m_weatherType = WeatherType::WINDY;
+        m_conditions = WeatherConditions::WINDY;
     else if (conditions == "lightning" || conditions == "lightning-rainy")
-        m_weatherType = WeatherType::THUNDERSTORM;
+        m_conditions = WeatherConditions::THUNDERSTORM;
     else if (conditions == "fog")
-        m_weatherType = WeatherType::FOGGY;
+        m_conditions = WeatherConditions::FOGGY;
     else if (conditions == "hail")
-        m_weatherType = WeatherType::HAIL;
+        m_conditions = WeatherConditions::HAIL;
     else if (conditions == "snowy-rainy")
-        m_weatherType = WeatherType::SLEET;
+        m_conditions = WeatherConditions::SLEET;
     else
-        m_weatherType = WeatherType::UNKNOWN;
+        m_conditions = WeatherConditions::UNKNOWN;
 }
 
 void Weather::Update() {
@@ -87,24 +89,54 @@ void Weather::Update() {
     m_pixels->Darken();
     m_anim->Update();
     if (!m_pixels->IsDarkModeEnabled() || m_pixels->GetBrightness() >= 0.05f) {
-        m_pixels->ClearRoundLEDs({1, 1, 0});
+        m_pixels->ClearRoundLEDs({0, 0, 0});
     }
 
-    // if (m_updateTimer.Ms() >= 1000 * 60 * 60 || m_weatherType == WeatherType::UNKNOWN) {
+    // TODO: for future async weather updates
+    // if (m_updateTask not active && (m_updateTimer.Ms() >= 1000 * 60 * 60 || m_weatherType == WeatherType::UNKNOWN)) {
     //     m_updateTimer.Reset();
-    //     UpdateConditions();
+    //     xTaskCreate(UpdateConditions, "UpdateConditions", 4096, NULL, 10, &m_updateTask);
     // }
 
+    // TEST: uncomment to cycle through weather conditions
+    // if (m_updateTimer.Ms() >= 1000 * 8) {
+    //     m_updateTimer.Reset();
+    //     m_conditions = static_cast<WeatherConditions>((static_cast<int>(m_conditions) + 1) % 11);
+    // }
+
+    // cycle increments every 1/3 second and cycles from 0 to 11, every 4 seconds
+    int8_t secondPart = 0;
+    if (m_rtc->Millis() >= 666)
+        secondPart = 2;
+    else if (m_rtc->Millis() >= 333)
+        secondPart = 1;
+    int8_t cycle = 3 * (m_rtc->Second() % 4) + secondPart;
+
+    // alternate between showing high and low temperature, shifting colors accordingly to indicate which is being shown
     char text[10];
-    sprintf(text, "%dF\0", m_temperatureHigh);
+    RgbColor tempColor = m_anim->digitColors[0];
+    int tempX = 1;
+    if ((m_rtc->Second() / 6) % 2 == 0) { // swap every 5 seconds
+        tempColor = tempColor.LinearBlend(tempColor, RED, 0.4F);
+        sprintf(text, "%d\0", m_temperatureHigh);
+        if (m_temperatureHigh < 10)
+            tempX += 5;
+    }
+    else {
+        tempColor = tempColor.LinearBlend(tempColor, BLUE, 0.3F);
+        sprintf(text, "%d\0", m_temperatureLow);
+        if (m_temperatureLow < 10)
+            tempX += 5;
+    }
+    m_pixels->DrawText(tempX, 1, text, tempColor, true);
+    m_pixels->DrawText(9, 1, "*F",  m_anim->digitColors[0], true); // TODO: need to handle negative and >100 temps
 
-    m_pixels->DrawText(1, 1, text, m_anim->digitColors[0], true);
+    // draw humidity
+    sprintf(text, "%d%%\0", m_humidity);
+    m_pixels->DrawText(4, 6, text, m_anim->digitColors[1], true);
 
-    sprintf(text, "%dF\0", m_temperatureLow);
-    m_pixels->DrawText(1, 6, text, m_anim->digitColors[1], true);
-
-    int cycle = (m_rtc->Second() % 12 << 1) + (m_rtc->Millis() > 500); // 0-11 in 6s
-    m_pixels->DrawWeatherLEDs(m_weatherType, cycle);
+    // draw weather conditions animation
+    m_pixels->DrawWeatherLEDs(m_conditions, cycle);
 
     CheckIfWaitingToSaveSettings();
 }

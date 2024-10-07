@@ -1,4 +1,4 @@
-// This file implements CHAR3X4acters as lines of code within pixels.hpp
+// This file implements characters as lines of code within pixels.hpp
 // It is not meant to be included elsewhere.
 
 // clang-format off
@@ -58,3 +58,13 @@ else if CHAR3X4('F',
         1, 1, 0,
         1, 0, 0,
         1, 0, 0)
+else if CHAR3X4('%',
+        1, 0, 0, 1,
+        0, 0, 1, 0,
+        0, 1, 0, 0,
+        1, 0, 0, 1)
+else if CHAR3X4('*',
+        1, 1,
+        1, 1,
+        0, 0,
+        0, 0)

@@ -40,7 +40,7 @@ void restDisplay()
   restServer.send(200, "text/plain", display ? "on" : "off");
 }
 
-// forecast: "67|67|sunny"
+// forecast: "Lo|Hi|Hu|conditions"
 void restWeather()
 {
   if (!restServer.hasArg("forecast"))
@@ -52,19 +52,21 @@ void restWeather()
   String forecastStr = restServer.arg("forecast");
   
   // split the forecast into its parts
-  int pipe1 = forecastStr.indexOf('|');
-  int pipe2 = forecastStr.indexOf('|', pipe1 + 1);
+  int split1 = forecastStr.indexOf('|');
+  int split2 = forecastStr.indexOf('|', split1 + 1);
+  int split3 = forecastStr.indexOf('|', split2 + 1);
   
-  if (pipe1 == -1 || pipe2 == -1)
+  if (split1 == -1 || split2 == -1 || split3 == -1)
   {
     restServer.send(400, "text/plain", "Invalid forecast format");
     return;
   }
 
-  int tempLow = forecastStr.substring(0, pipe1).toInt();
-  int tempHigh = forecastStr.substring(pipe1 + 1, pipe2).toInt();
-  String type = forecastStr.substring(pipe2 + 1);
-  weather->UpdateForecast(tempLow, tempHigh, type);
+  int tempLow = forecastStr.substring(0, split1).toInt();
+  int tempHigh = forecastStr.substring(split1 + 1, split2).toInt();
+  int humidity = forecastStr.substring(split2 + 1, split3).toInt();
+  String conditions = forecastStr.substring(split3 + 1);
+  weather->UpdateForecast(tempLow, tempHigh, humidity, conditions);
 
   restServer.send(200, "text/plain", forecastStr);
 }

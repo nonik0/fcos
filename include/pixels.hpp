@@ -46,18 +46,18 @@ enum ScrollDirection_e {
     SCROLL_LEFT = -1,
 };
 
-enum WeatherType {
-  UNKNOWN,
+enum WeatherConditions {
   SUNNY,
-  CLOUDY,
   PARTLY_CLOUDY,
+  CLOUDY,
   RAINY,
-  SNOWY,
   THUNDERSTORM,
-  WINDY,
-  FOGGY,
+  SNOWY,
   HAIL,
   SLEET,
+  WINDY,
+  FOGGY,
+  UNKNOWN,
 };
 
 enum PixelsConfig_e {
@@ -222,7 +222,20 @@ class Pixels {
                         const RgbColor color,
                         const int brightestLED = 0);  // 0,1,2
 
-    void DrawWeatherLEDs(const WeatherType type, const int cycle);
+    void DrawWeatherLEDs(const WeatherConditions type, const int8_t cycle);
+
+    // TODO: private
+    void DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawCloudyLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawPrecipLEDs(int8_t startPos, int8_t len, int8_t cycle, RgbColor color, RgbColor color2 = BLACK);
+
+    void DrawLightningLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawWindLEDs(const int8_t cycle);
+
+    bool IsInWheelRange(const int8_t pos, const int8_t start, const int8_t end);
 #endif
     void Move(const int fromCol,
               const int fromRow,

@@ -380,56 +380,150 @@ void Pixels::DrawSecondLEDs(const int second,
 #endif
 }
 
-void Pixels::DrawWeatherLEDs(const WeatherType type, const int cycle) {
-    int startPos = -1;
-    RgbColor color = BLACK;
+void Pixels::DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    for (int i = 0; i < len; i++) {
+        int8_t pos = (startPos + i) % RING_SIZE;
+
+        DrawRingLED(0, pos, YELLOW);
+        DrawRingLED(1, pos, YELLOW);
+        if (cycle >= 6) {
+            if (pos % 2 == 0) {
+                DrawRingLED(2, pos, YELLOW);
+            }
+        }
+        else if (pos % 2 == 1) {
+            DrawRingLED(2, pos, YELLOW);
+        }
+    }
+}
+
+bool Pixels::IsInWheelRange(const int8_t pos, const int8_t start, const int8_t end) {
+    int8_t endMod = end % RING_SIZE;
+    if (start < endMod) {
+        return pos >= start && pos < endMod;
+    }
+    return pos >= start || pos < endMod;
+}
+
+void Pixels::DrawCloudyLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    const int8_t Offset0 = 0;
+    const int8_t Offset1 = 4;
+    const int8_t Offset2 = 8;
+    const int8_t BaseCloudWidth = 5;
+
+    int8_t endPos = (startPos + len) % RING_SIZE;
+    for (int8_t pos = 0; pos < RING_SIZE; pos++) {
+        // only draw the clouds in the specified range
+        if (!IsInWheelRange(pos, startPos, endPos)) {
+            continue;
+        }
+
+        int8_t ring0Start = (cycle + Offset0) % RING_SIZE;
+        int8_t ring1Start = (cycle + Offset1) % RING_SIZE;
+        int8_t ring2Start = (cycle + Offset2) % RING_SIZE;
+        RgbColor ring0Color = IsInWheelRange(pos, ring0Start, ring0Start + BaseCloudWidth + 0) ? GRAY : DARK_GRAY;
+        RgbColor ring1Color = IsInWheelRange(pos, ring1Start, ring1Start + BaseCloudWidth + 1) ? GRAY : DARK_GRAY;
+        RgbColor ring2Color = IsInWheelRange(pos, ring2Start, ring2Start + BaseCloudWidth + 2) ? GRAY : DARK_GRAY;
+        DrawRingLED(0, pos, ring0Color);
+        DrawRingLED(1, pos, ring1Color);
+        DrawRingLED(2, pos, ring2Color);
+    }
+}
+
+void Pixels::DrawPrecipLEDs(int8_t startPos, int8_t len, int8_t cycle, RgbColor color, RgbColor color2) {
+    for (int i = 0; i < len; i++) {
+        int pos = (startPos + i) % RING_SIZE;
+        int ring = (cycle + i) % NUM_RINGS;
+        DrawRingLED(ring, pos, color);
+
+        if (color2 != BLACK) {
+            DrawRingLED((ring + 1) % NUM_RINGS, pos, color2);
+        }
+    }
+}
+
+void Pixels::DrawLightningLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    for (int i = 0; i < len; i++) {
+        int pos = (startPos + i) % RING_SIZE;
+        
+        if (random(0, 66) == 0) {
+            DrawRingLED(0, pos, LIGHT_YELLOW);
+            DrawRingLED(1, pos, LIGHT_YELLOW);
+            DrawRingLED(2, pos, LIGHT_YELLOW);
+            i++; // no adjacent bolts
+        }
+    }
+}
+
+void Pixels::DrawWindLEDs(const int8_t cycle) {
+    const int8_t Offset0 = 0;
+    const int8_t Offset1 = 4;
+    const int8_t Offset2 = 8;
+    const int8_t BaseGustWidth = 5;
+
+    for (int8_t pos = RING_SIZE - 1; pos >= 0; pos--) {
+        int8_t ring0Start = (cycle + Offset0) % RING_SIZE;
+        int8_t ring1Start = (cycle + Offset1) % RING_SIZE;
+        int8_t ring2Start = (cycle + Offset2) % RING_SIZE;
+        RgbColor ring0Color = IsInWheelRange(pos, ring0Start, ring0Start + BaseGustWidth + 0) ? DARK_CYAN : BLACK;
+        RgbColor ring1Color = IsInWheelRange(pos, ring1Start, ring1Start + BaseGustWidth + 1) ? DARK_CYAN : BLACK;
+        RgbColor ring2Color = IsInWheelRange(pos, ring2Start, ring2Start + BaseGustWidth + 2) ? DARK_CYAN : BLACK;
+        DrawRingLED(0, pos, ring0Color);
+        DrawRingLED(1, pos, ring1Color);
+        DrawRingLED(2, pos, ring2Color);
+    }
+}
+
+void Pixels::DrawWeatherLEDs(const WeatherConditions type, const int8_t cycle) {
     switch (type) {
         case SUNNY:
-            for (int i = 0; i < RING_SIZE; ++i) {
-                DrawRingLED(0, i, YELLOW);
-                if (cycle >= 4) {
-                    DrawRingLED(1, i, YELLOW);
-                }
-                if (cycle >= 8) {
-                    DrawRingLED(2, i, YELLOW);
-                }
-            }
+            DrawSunnyLEDs(0, RING_SIZE, cycle);
+            break;
+        case PARTLY_CLOUDY:
+            DrawSunnyLEDs(9, 5, cycle);
+            DrawCloudyLEDs(2, 7, cycle);
             break;
         case RAINY:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, BLUE);
+            break;
+        case SLEET:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, BLUE, CYAN);
+            break;
         case SNOWY:
-            startPos = 4;
-            color = type == RAINY ? BLUE : WHITE;
-            for (int i = 0; i < 6; i++) {
-                int curRing = (cycle + i) % NUM_RINGS;
-                int curPos = (startPos + i) % RING_SIZE;
-                DrawRingLED(curRing, curPos, color);
-            }
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, WHITE);
+            break;
+        case HAIL:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, CYAN, CYAN);
             break;
         case CLOUDY:
-        case PARTLY_CLOUDY:
-            startPos = 9;
-            for (int i = 0; i < 6; i++) {
-                int curPos = (startPos + i) % RING_SIZE;
-                //if (curPos + cycle)
-                DrawRingLED(0, curPos, GRAY);
-                DrawRingLED(1, curPos, GRAY);
-                DrawRingLED(2, curPos, GRAY);
-            }
+            DrawCloudyLEDs(0, RING_SIZE, cycle);
             break;
         case THUNDERSTORM:
-            if (cycle % 3 == 0) {
-                startPos = random(3, 10);
-                DrawRingLED(0, startPos, YELLOW);
-                DrawRingLED(1, startPos, YELLOW);
-                DrawRingLED(2, startPos, YELLOW);
-            }
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, BLUE);
+            DrawLightningLEDs(3, 5, cycle);
+            break;
+        case WINDY:
+            DrawWindLEDs(cycle);
             break;
         case FOGGY:
-        case HAIL:
-        case SLEET:
-        case WINDY:
+            for (int pos = 0; pos < RING_SIZE; pos++) {
+                DrawRingLED(0, pos, DARK_GRAY);
+                DrawRingLED(1, pos, DARK_GRAY);
+                DrawRingLED(2, pos, DARK_GRAY);
+            }
+            break;
         default:
-            return;
+            for (int pos = 0; pos < RING_SIZE; pos++) {
+                DrawRingLED(0, pos, {1,0,0});
+                DrawRingLED(1, pos, {1,0,0});
+                DrawRingLED(2, pos, {1,0,0});
+            }
+            break;
     }
 }
 #endif
