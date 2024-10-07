@@ -46,6 +46,20 @@ enum ScrollDirection_e {
     SCROLL_LEFT = -1,
 };
 
+enum WeatherType {
+  UNKNOWN,
+  SUNNY,
+  CLOUDY,
+  PARTLY_CLOUDY,
+  RAINY,
+  SNOWY,
+  THUNDERSTORM,
+  WINDY,
+  FOGGY,
+  HAIL,
+  SLEET,
+};
+
 enum PixelsConfig_e {
 
 #if FCOS_FOXIECLOCK
@@ -156,13 +170,13 @@ class Pixels {
              const RgbColor color,
              const bool force = false);
 
-    int DrawText(int x, String text, const RgbColor color);
+    int DrawText(int x, String text, const RgbColor color, bool useSmallFont = false);
 
-    int DrawText(int x, int y, String text, const RgbColor color);
+    int DrawText(int x, int y, String text, const RgbColor color, bool useSmallFont = false);
 
-    int DrawChar(int x, char character, const RgbColor color);
+    int DrawChar(int x, char character, const RgbColor color, bool useSmallFont = false);
 
-    int DrawChar(int x, int y, char character, const RgbColor color);
+    int DrawChar(int x, int y, char character, const RgbColor color, bool useSmallFont = false);
 
     static RgbColor ColorWheel(uint8_t pos);
 
@@ -207,15 +221,6 @@ class Pixels {
     void DrawSecondLEDs(const int second,
                         const RgbColor color,
                         const int brightestLED = 0);  // 0,1,2
-
-    enum WeatherType {
-        SUNNY,
-        CLOUDY,
-        RAINY,
-        SNOWY,
-        THUNDERSTORM,
-        FOGGY,
-    };
 
     void DrawWeatherLEDs(const WeatherType type, const int cycle);
 #endif

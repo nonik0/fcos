@@ -120,48 +120,63 @@ void Pixels::Set(const int x,
     }
 }
 
-int Pixels::DrawText(int x, String text, const RgbColor color) {
-    return DrawText(x, 0, text, color);
+int Pixels::DrawText(int x, String text, const RgbColor color, bool useSmallFont) {
+    return DrawText(x, 0, text, color, useSmallFont);
 }
 
-int Pixels::DrawText(int x, int y, String text, const RgbColor color) {
+int Pixels::DrawText(int x, int y, String text, const RgbColor color, bool useSmallFont) {
     text.toUpperCase();
     int textWidth = 0;
 
     for (auto character : text) {
-        const int charWidth = DrawChar(x, y, character, color);
+        const int charWidth = DrawChar(x, y, character, color, useSmallFont);
         textWidth += charWidth;
         x += charWidth;
     }
     return textWidth;
 }
 
-int Pixels::DrawChar(int x, char character, const RgbColor color) {
-    return DrawChar(x, 0, character, color);
+int Pixels::DrawChar(int x, char character, const RgbColor color, bool useSmallFont) {
+    return DrawChar(x, 0, character, color, useSmallFont);
 }
 
-int Pixels::DrawChar(int x, int y, char character, const RgbColor color) {
+int Pixels::DrawChar(int x, int y, char character, const RgbColor color, bool useSmallFont) {
     std::vector<uint8_t> charData;
     // clang-format off
         // --------------- 
         // characters are implemented in characters.inc as a list of if/else statements
         // ---------------
 #if FCOS_CARDCLOCK || FCOS_CARDCLOCK2
+        if (useSmallFont) {
+#include "characters/cc3x4.inc"
+        }
+        else {
 #include "characters/cc.inc"
+        }
         // show a ? for unknown characters
         if (charData.empty()) {
-            charData = {
-                1, 1, 0,
-                0, 0, 1,
-                0, 1, 0,
-                0, 0, 0,
-                0, 1, 0,
-            };
+            if (useSmallFont) {
+                charData = {
+                    1, 1, 0,
+                    0, 0, 1,
+                    0, 1, 0,
+                    0, 1, 0,
+                };
+            } else {
+                charData = {
+                    1, 1, 0,
+                    0, 0, 1,
+                    0, 1, 0,
+                    0, 0, 0,
+                    0, 1, 0,
+                };
+            }
         }
 
-        const int charWidth = charData.size() / CHAR_HEIGHT;
+        int charHeight = useSmallFont ? 4 : CHAR_HEIGHT;
+        const int charWidth = charData.size() / charHeight;
         const uint8_t* data = &charData[0];
-        for (int row = 0; row < CHAR_HEIGHT; ++row) {
+        for (int row = 0; row < charHeight; ++row) {
             for (int column = x; column < x + charWidth; ++column) {
                 if (column >= 0 && column < DISPLAY_WIDTH && *data) {
                     Set(column, y + row, color);
@@ -366,21 +381,53 @@ void Pixels::DrawSecondLEDs(const int second,
 }
 
 void Pixels::DrawWeatherLEDs(const WeatherType type, const int cycle) {
+    int startPos = -1;
+    RgbColor color = BLACK;
     switch (type) {
         case SUNNY:
             for (int i = 0; i < RING_SIZE; ++i) {
                 DrawRingLED(0, i, YELLOW);
-                if (cycle >= 2) {
+                if (cycle >= 4) {
                     DrawRingLED(1, i, YELLOW);
+                }
+                if (cycle >= 8) {
+                    DrawRingLED(2, i, YELLOW);
                 }
             }
             break;
         case RAINY:
-            for (int i = 4; i < 7; i++) {
-                int dropCycle = cycle + i % 3;
-                DrawRingLED(dropCycle, i, BLUE);
+        case SNOWY:
+            startPos = 4;
+            color = type == RAINY ? BLUE : WHITE;
+            for (int i = 0; i < 6; i++) {
+                int curRing = (cycle + i) % NUM_RINGS;
+                int curPos = (startPos + i) % RING_SIZE;
+                DrawRingLED(curRing, curPos, color);
             }
             break;
+        case CLOUDY:
+        case PARTLY_CLOUDY:
+            startPos = 9;
+            for (int i = 0; i < 6; i++) {
+                int curPos = (startPos + i) % RING_SIZE;
+                //if (curPos + cycle)
+                DrawRingLED(0, curPos, GRAY);
+                DrawRingLED(1, curPos, GRAY);
+                DrawRingLED(2, curPos, GRAY);
+            }
+            break;
+        case THUNDERSTORM:
+            if (cycle % 3 == 0) {
+                startPos = random(3, 10);
+                DrawRingLED(0, startPos, YELLOW);
+                DrawRingLED(1, startPos, YELLOW);
+                DrawRingLED(2, startPos, YELLOW);
+            }
+            break;
+        case FOGGY:
+        case HAIL:
+        case SLEET:
+        case WINDY:
         default:
             return;
     }

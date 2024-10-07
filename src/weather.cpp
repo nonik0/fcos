@@ -1,10 +1,83 @@
-#if FCOS_CARDCLOCK2
 #include <weather.hpp>
 
-void Weather::Activate() {
-    LoadSettings();
-    SetAnimator(CreateAnimator(m_pixels, m_settings, m_rtc,
-                               (AnimatorType_e)m_animMode));
+// void Weather::UpdateConditions() {
+//     try {
+//         WiFiClient wifiClient;
+//         HTTPClient httpClient;
+//         String requestUri = "https://api.tomorrow.io/v4/weather/forecast?location=98112&timesteps=daily&apikey=aIZ4ID3MjSTlSgei5t4oNi4lTfQRucl4";
+
+//         httpClient.begin(wifiClient, requestUri);
+
+//         int httpResponseCode = httpClient.GET();
+//         if (httpResponseCode != 200)
+//         {
+//             m_temperatureHigh = httpResponseCode;
+//             m_weatherType = WeatherType::RAINY;
+//             return;
+//         }
+
+//         String jsonString = httpClient.getString();
+//         httpClient.end();
+
+//         DynamicJsonDocument jsonDoc(16 * 1024);
+//         DeserializationError jsonError = deserializeJson(jsonDoc, jsonString);
+//         if (jsonError)
+//         {
+//             m_temperatureHigh = 2;
+//             m_weatherType = WeatherType::RAINY;
+//             return;
+//         }
+
+//         auto today = jsonDoc["timelines"]["daily"][0]["values"];
+
+//         m_temperatureHigh = today["temperatureMax"].as<int>();
+//         m_temperatureLow = today["temperatureMin"].as<int>();
+
+//         // convert C to F
+//         m_temperatureHigh = m_temperatureHigh * 9 / 5 + 32;
+//         m_temperatureLow = m_temperatureLow * 9 / 5 + 32;
+
+//         int weatherCodeMin = today["weatherCodeMin"].as<int>();
+//         int weatherCodeMax = today["weatherCodeMax"].as<int>();
+
+//         // https://docs.tomorrow.io/reference/data-layers-weather-codes
+//         if (weatherCodeMin < 2000) {
+//             m_weatherType = WeatherType::SUNNY;
+//         } else {
+//             m_weatherType = WeatherType::RAINY;
+//         }
+//     } catch (const std::exception& e) {
+//         m_temperatureHigh = 3;
+//         m_weatherType = WeatherType::RAINY;
+//     }
+// }
+
+void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, String conditions) {
+    m_temperatureLow = tempLow;
+    m_temperatureHigh = tempHigh;
+    
+    if (conditions == "sunny" || conditions == "clear-night")
+        m_weatherType = WeatherType::SUNNY;
+    else if (conditions == "cloudy" || conditions == "exceptional")
+        m_weatherType = WeatherType::CLOUDY;
+    else if (conditions == "partlycloudy")
+        m_weatherType = WeatherType::PARTLY_CLOUDY;
+    else if (conditions == "rainy" || conditions == "pouring")
+        m_weatherType = WeatherType::RAINY;
+    else if (conditions == "snowy")
+        m_weatherType = WeatherType::SNOWY;
+    else if (conditions == "windy" || conditions == "windy-variant")
+        m_weatherType = WeatherType::WINDY;
+    else if (conditions == "lightning" || conditions == "lightning-rainy")
+        m_weatherType = WeatherType::THUNDERSTORM;
+    else if (conditions == "fog")
+        m_weatherType = WeatherType::FOGGY;
+    else if (conditions == "hail")
+        m_weatherType = WeatherType::HAIL;
+    else if (conditions == "snowy-rainy")
+        m_weatherType = WeatherType::SLEET;
+    else
+        m_weatherType = WeatherType::UNKNOWN;
 }
 
 void Weather::Update() {
@@ -14,22 +87,24 @@ void Weather::Update() {
     m_pixels->Darken();
     m_anim->Update();
     if (!m_pixels->IsDarkModeEnabled() || m_pixels->GetBrightness() >= 0.05f) {
-        m_pixels->ClearRoundLEDs({1, 1, 1});
+        m_pixels->ClearRoundLEDs({1, 1, 0});
     }
+
+    // if (m_updateTimer.Ms() >= 1000 * 60 * 60 || m_weatherType == WeatherType::UNKNOWN) {
+    //     m_updateTimer.Reset();
+    //     UpdateConditions();
+    // }
 
     char text[10];
-    sprintf(text, "72F\0");
+    sprintf(text, "%dF\0", m_temperatureHigh);
 
-    int yPos = 3;
-    m_pixels->DrawText(0, yPos, text, m_anim->digitColors[0]);
+    m_pixels->DrawText(1, 1, text, m_anim->digitColors[0], true);
 
-    int cycle = 0;
-    if (m_rtc->Millis() >= 333) {
-        cycle = 1;
-    } else if (m_rtc->Millis() >= 666) {
-        cycle = 2;
-    }
-    m_pixels->DrawWeatherLEDs(Pixels::SUNNY, cycle);
+    sprintf(text, "%dF\0", m_temperatureLow);
+    m_pixels->DrawText(1, 6, text, m_anim->digitColors[1], true);
+
+    int cycle = (m_rtc->Second() % 12 << 1) + (m_rtc->Millis() > 500); // 0-11 in 6s
+    m_pixels->DrawWeatherLEDs(m_weatherType, cycle);
 
     CheckIfWaitingToSaveSettings();
 }
@@ -38,71 +113,6 @@ void Weather::SetAnimator(std::shared_ptr<Animator> anim) {
     m_anim = anim;
     m_anim->Start();
     m_anim->SetColor((*m_settings)["COLR"].as<uint8_t>());
-}
-
-void Weather::Up(const Button::Event_e evt) {
-    if (evt == Button::PRESS || evt == Button::REPEAT) {
-        m_anim->Up();
-        PrepareToSaveSettings();
-    }
-};
-
-void Weather::Down(const Button::Event_e evt) {
-    if (evt == Button::PRESS || evt == Button::REPEAT) {
-        m_anim->Down();
-        PrepareToSaveSettings();
-    }
-};
-
-bool Weather::Left(const Button::Event_e evt) {
-    if (evt == Button::PRESS) {
-        m_anim->Left();
-        // temporary hack for photos
-        // m_rtc->SetTime(12, 34, 00);
-    }
-    return evt != Button::REPEAT;  // when held, move to SetTime display
-};
-
-bool Weather::Right(const Button::Event_e evt) {
-    if (evt == Button::PRESS) {
-        m_anim->Right();
-    }
-    return evt != Button::REPEAT;  // when held, move to ConfigMenu display
-};
-
-// toggles between configured MINB=user and temporary MINB=0
-void Weather::Press(const Button::Event_e evt) {
-    static bool toggledDarkMode = false;
-    if (evt == Button::RELEASE) {
-        if (toggledDarkMode) {
-            // don't want to change anim mode when toggling dark mode
-            toggledDarkMode = false;
-            return;
-        }
-
-        if (++m_animMode >= ANIM_TOTAL) {
-            m_animMode = 0;
-        }
-        SetAnimator(CreateAnimator(m_pixels, m_settings, m_rtc,
-                                   (AnimatorType_e)m_animMode));
-        (*m_settings)["ANIM"] = m_animMode + 1;
-        m_pixels->Clear();
-        Joystick joy;
-        uint8_t pos = 0;
-        for (int i = 0; i < 0 + (m_anim->name.length() * 4); i++) {
-            m_pixels->Clear();
-            m_pixels->DrawText(0 - i, 3, m_anim->name, LIGHT_GRAY);
-            m_pixels->Show();
-            if (joy.WaitForButton(joy.press, 75)) {
-                ElapsedTime::Delay(25);
-            }
-        }
-        joy.WaitForNoButtonsPressed();
-        PrepareToSaveSettings();
-    } else if (evt == Button::REPEAT) {
-        m_pixels->ToggleDarkMode();
-        toggledDarkMode = true;
-    }
 }
 
 void Weather::PrepareToSaveSettings() {
@@ -138,4 +148,3 @@ void Weather::LoadSettings() {
         }
     }
 }
-#endif

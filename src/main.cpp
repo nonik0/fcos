@@ -12,6 +12,7 @@
 #include <settings.hpp>
 #include <weather.hpp>
 
+std::shared_ptr<Weather> weather;
 WebServer restServer(80);
 bool display = true;
 
@@ -39,10 +40,40 @@ void restDisplay()
   restServer.send(200, "text/plain", display ? "on" : "off");
 }
 
+// forecast: "67|67|sunny"
+void restWeather()
+{
+  if (!restServer.hasArg("forecast"))
+  {
+    restServer.send(400, "text/plain", "No forecast provided");
+    return;
+  }
+
+  String forecastStr = restServer.arg("forecast");
+  
+  // split the forecast into its parts
+  int pipe1 = forecastStr.indexOf('|');
+  int pipe2 = forecastStr.indexOf('|', pipe1 + 1);
+  
+  if (pipe1 == -1 || pipe2 == -1)
+  {
+    restServer.send(400, "text/plain", "Invalid forecast format");
+    return;
+  }
+
+  int tempLow = forecastStr.substring(0, pipe1).toInt();
+  int tempHigh = forecastStr.substring(pipe1 + 1, pipe2).toInt();
+  String type = forecastStr.substring(pipe2 + 1);
+  weather->UpdateForecast(tempLow, tempHigh, type);
+
+  restServer.send(200, "text/plain", forecastStr);
+}
+
 void restSetup()
 {
     restServer.on("/", restIndex);
     restServer.on("/display", restDisplay);
+    restServer.on("/weather", restWeather);
     restServer.begin();
 }
 
@@ -61,14 +92,17 @@ void setup() {
     // Display allows it (e.g. holding left at the Clock activates SetTime)
     auto displayMgr =
         std::make_shared<DisplayManager>(pixels, settings, rtc, joy);
+    
+    weather = std::make_shared<Weather>(rtc);
+    // rest = std::make_shared<Rest>(clock, weather); // eventually
 
     displayMgr->Add(std::make_shared<SetTime>(rtc));
     displayMgr->Add(std::make_shared<Clock>(rtc));
-    displayMgr->Add(std::make_shared<Weather>(rtc));
+    displayMgr->Add(weather);
     displayMgr->Add(std::make_shared<ConfigMenu>());
 
     // 0 = SetTime   <=>   1 = Clock   <=>   2 = Weather   <=>   3 = ConfigMenu
-    displayMgr->SetDefaultAndActivateDisplay(1);
+    displayMgr->SetDefaultAndActivateDisplay(2);
 
     for (;;) {  // forever, instead of loop(), because I avoid globals ;) [nonik0] If anyone reads this--I know I stomped all over this, but it's a quick hack. I would keep things idiomatic at release-level quality. :)
         ShowSerialStatusMessage(pixels, rtc);
