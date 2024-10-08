@@ -47,17 +47,17 @@ enum ScrollDirection_e {
 };
 
 enum WeatherConditions {
-  SUNNY,
-  PARTLY_CLOUDY,
-  CLOUDY,
-  RAINY,
-  THUNDERSTORM,
-  SNOWY,
-  HAIL,
-  SLEET,
-  WINDY,
-  FOGGY,
-  UNKNOWN,
+    SUNNY,
+    PARTLY_CLOUDY,
+    CLOUDY,
+    RAINY,
+    THUNDERSTORM,
+    SNOWY,
+    HAIL,
+    SLEET,
+    WINDY,
+    FOGGY,
+    UNKNOWN,
 };
 
 enum PixelsConfig_e {

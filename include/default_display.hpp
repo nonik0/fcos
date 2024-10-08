@@ -11,11 +11,8 @@
 #include <set_time.hpp>
 #include <settings.hpp>
 
-// TODO: rename to ActiveDisplay?
 class DefaultDisplay : public Display {
   protected:
-    // friend class Clock;
-    // friend class Weather;
     std::shared_ptr<Rtc> m_rtc;
     size_t m_animMode{0};
     bool m_shouldSaveSettings{false};

@@ -1,5 +1,4 @@
 #pragma once
-
 #include <default_display.hpp>
 
 class Weather : public DefaultDisplay {

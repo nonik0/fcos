@@ -31,6 +31,13 @@ void DisplayManager::Update() {
             m_displays[m_lastActiveDisplay]->Update();
         }
 
+        // TODO: any button press should clear blanking state
+        if (!m_isFirstUpdate && m_isDisplayBlanked) {
+            m_pixels->Clear(BLACK, true, true);
+            m_pixels->Show();
+            return;
+        }
+
         auto& cur = m_displays[m_activeDisplay];
         cur->Update();
         if (cur->IsDone() ||
@@ -57,6 +64,14 @@ std::shared_ptr<Display> DisplayManager::GetActive() {
 void DisplayManager::SetDefaultAndActivateDisplay(const size_t displayNum) {
     m_defaultDisplay = displayNum;
     ActivateDisplay(displayNum);
+}
+
+bool DisplayManager::GetBlankingState() {
+    return m_isDisplayBlanked;
+}
+
+void DisplayManager::SetBlankingState(const bool isBlanked) {
+    m_isDisplayBlanked = isBlanked;
 }
 
 void DisplayManager::ActivateDisplay(const size_t displayNum) {
