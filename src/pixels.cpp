@@ -397,6 +397,15 @@ void Pixels::DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle) {
     }
 }
 
+// TODO
+void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    for (int i = 0; i < len; i++) {
+        int8_t pos = (startPos + i) % RING_SIZE;
+        DrawRingLED(0, pos, DARK_YELLOW);
+        DrawRingLED(1, pos, DARK_YELLOW);
+    }
+}
+
 bool Pixels::IsInWheelRange(const int8_t pos, const int8_t start, const int8_t end) {
     int8_t endMod = end % RING_SIZE;
     if (start < endMod) {
@@ -516,6 +525,22 @@ void Pixels::DrawWeatherLEDs(const WeatherConditions type, const int8_t cycle) {
                 DrawRingLED(1, pos, DARK_GRAY);
                 DrawRingLED(2, pos, DARK_GRAY);
             }
+            break;
+        case PARTLY_CLEAR:
+            DrawMoonLEDs(9, 5, cycle);
+            DrawCloudyLEDs(2, 7, cycle);
+            break;
+        case CLEAR_FULL:
+            DrawMoonLEDs(0, RING_SIZE, cycle);
+            break;
+        case CLEAR_WAX:
+            DrawMoonLEDs(7, 5, cycle);
+            break;
+        case CLEAR_WANE:
+            DrawMoonLEDs(0, 5, cycle);
+            break;
+        case CLEAR_NEW:
+            //DrawMoonLEDs(3, 5, cycle);
             break;
         default:
             for (int pos = 0; pos < RING_SIZE; pos++) {

@@ -47,15 +47,16 @@ void RestServer::HandleWeather() {
     return;
   }
 
-  // forecast fmt: "LowTmp|HighTmp|HumidPct|ConditionsStr"
+  // forecast fmt: "LowTmp|HighTmp|HumidPct|AQI|ConditionsStr"
   String forecastStr = m_webServer.arg("forecast");
 
   // split the forecast into its parts
   int split1 = forecastStr.indexOf('|');
   int split2 = forecastStr.indexOf('|', split1 + 1);
   int split3 = forecastStr.indexOf('|', split2 + 1);
+  int split4 = forecastStr.indexOf('|', split3 + 1);
 
-  if (split1 == -1 || split2 == -1 || split3 == -1) {
+  if (split1 == -1 || split2 == -1 || split3 == -1 || split4 == -1) {
     m_webServer.send(400, "text/plain", "Invalid forecast format");
     return;
   }
@@ -63,8 +64,9 @@ void RestServer::HandleWeather() {
   int tempLow = forecastStr.substring(0, split1).toInt();
   int tempHigh = forecastStr.substring(split1 + 1, split2).toInt();
   int humidity = forecastStr.substring(split2 + 1, split3).toInt();
-  String conditions = forecastStr.substring(split3 + 1);
-  m_weather->UpdateForecast(tempLow, tempHigh, humidity, conditions);
+  int aqi = forecastStr.substring(split3 + 1, split4).toInt();
+  String conditions = forecastStr.substring(split4 + 1);
+  m_weather->UpdateForecast(tempLow, tempHigh, humidity, aqi, conditions);
 
   m_webServer.send(200, "text/plain", forecastStr);
 }

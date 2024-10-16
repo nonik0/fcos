@@ -47,21 +47,27 @@
 //     }
 // }
 
-void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, int8_t humidity, String conditions) {
+void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, uint8_t aqi, String conditions) {
     m_temperatureLow = tempLow;
     m_temperatureHigh = tempHigh;
     m_humidity = humidity;
+    m_aqi = aqi;
 
     conditions.toLowerCase();
-    
+
     // weird ones are probably for Home Assistant forecast conditions strings
-    if (conditions == "sunny" || conditions == "clear" || conditions == "clear-night")
+    if (conditions == "sunny" || conditions == "clear")
         m_conditions = WeatherConditions::SUNNY;
+    else if (conditions == "clear-night")
+        m_conditions = WeatherConditions::CLEAR_FULL;
     // TODO: moon at night? with phases??
     else if (conditions == "cloudy" || conditions == "overcast" || conditions == "exceptional" )
         m_conditions = WeatherConditions::CLOUDY;
     else if (conditions == "partlycloudy" || conditions == "partlysunny" || conditions == "partlyovercast")
-        m_conditions = WeatherConditions::PARTLY_CLOUDY;
+        if (m_rtc->Hour() < 6 || m_rtc->Hour() > 18)
+            m_conditions = WeatherConditions::PARTLY_CLEAR;
+        else
+            m_conditions = WeatherConditions::PARTLY_CLOUDY;
     else if (conditions == "rain" || conditions == "rainy" || conditions == "pouring")
         m_conditions = WeatherConditions::RAINY;
     else if (conditions == "snowy" || conditions == "snow")
@@ -76,6 +82,8 @@ void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, int8_t humidity, S
         m_conditions = WeatherConditions::HAIL;
     else if (conditions == "sleet" || conditions == "snowy-rainy")
         m_conditions = WeatherConditions::SLEET;
+    else if (conditions == "partlyclear")
+        m_conditions = WeatherConditions::PARTLY_CLEAR;
     else
         m_conditions = WeatherConditions::UNKNOWN;
 }
@@ -108,22 +116,41 @@ void Weather::Update() {
     int tempX = 1;
     if ((m_rtc->Second() / 6) % 2 == 0) { // swap every 5 seconds
         tempColor = tempColor.LinearBlend(tempColor, RED, 0.4F);
-        sprintf(text, "%d\0", m_temperatureHigh);
-        if (m_temperatureHigh < 10)
-            tempX += 5;
+        sprintf(text, "%2d\0", m_temperatureHigh);
     }
     else {
         tempColor = tempColor.LinearBlend(tempColor, BLUE, 0.3F);
-        sprintf(text, "%d\0", m_temperatureLow);
-        if (m_temperatureLow < 10)
-            tempX += 5;
+        sprintf(text, "%2d\0", m_temperatureLow);
     }
     m_pixels->DrawText(tempX, 1, text, tempColor, true);
     m_pixels->DrawText(9, 1, "*F",  m_anim->digitColors[0], true); // TODO: need to handle negative and >100 temps
 
-    // draw humidity
-    sprintf(text, "%d%%\0", m_humidity);
-    m_pixels->DrawText(4, 6, text, m_anim->digitColors[1], true);
+    // alternate between humidity and aqi
+    if ((m_rtc->Second() / 5) % 2 == 0) { // swap every 6 seconds
+
+        sprintf(text, "%d%%\0", m_humidity);
+        m_pixels->DrawText(4, 6, text, m_anim->digitColors[1], true);
+    }
+    else {
+        // draw aqi
+        RgbColor aqiColor = m_anim->digitColors[0];
+        RgbColor aqiShiftColor = GREEN;
+        if (m_aqi > 50)
+            aqiShiftColor = YELLOW;
+        if (m_aqi > 100)
+            aqiShiftColor = ORANGE;
+        if (m_aqi > 150)
+            aqiShiftColor = RED;
+        if (m_aqi > 200)
+            aqiShiftColor = PURPLE;
+        aqiColor = aqiColor.LinearBlend(aqiColor, aqiShiftColor, 0.4F);
+
+        sprintf(text, "%3d\0", m_aqi);
+        m_pixels->DrawText(0, 6, text, aqiColor, true);
+        m_pixels->DrawText(12, 6, "Q",  m_anim->digitColors[0], true);
+    }
+
+
 
     // weather animation cycle increments every 1/3 second, cycles from 0 to 11 every 4 seconds
     int8_t secondPart = 0;

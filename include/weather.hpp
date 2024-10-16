@@ -6,14 +6,15 @@ class Weather : public DefaultDisplay {
     ElapsedTime m_updateTimer;
     //auto m_updateTask = nullptr;
     WeatherConditions m_conditions{UNKNOWN};
-    int8_t m_temperatureLow{32};
+    int8_t m_temperatureLow{1};
     int8_t m_temperatureHigh{99};
-    int8_t m_humidity{50};
+    uint8_t m_humidity{50};
+    uint8_t m_aqi{123};
 
   public:
     Weather(std::shared_ptr<Rtc> rtc) : DefaultDisplay(rtc) {}
 
-    void UpdateForecast(int8_t tempLow, int8_t tempHigh, int8_t humidity, String type);
+    void UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, uint8_t aqi, String conditions);
 
     virtual void Update() override;
 

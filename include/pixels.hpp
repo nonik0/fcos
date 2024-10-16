@@ -57,6 +57,12 @@ enum WeatherConditions {
     SLEET,
     WINDY,
     FOGGY,
+    // night
+    PARTLY_CLEAR,
+    CLEAR_FULL,
+    CLEAR_WANE,
+    CLEAR_WAX,
+    CLEAR_NEW,
     UNKNOWN,
 };
 
@@ -226,6 +232,8 @@ class Pixels {
 
     // TODO: private
     void DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawMoonLEDs(int8_t startPos, int8_t len, int8_t cycle);
 
     void DrawCloudyLEDs(int8_t startPos, int8_t len, int8_t cycle);
 
