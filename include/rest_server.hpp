@@ -13,7 +13,7 @@ class RestServer {
     std::shared_ptr<Weather> m_weather;
 
   public:
-    RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_ptr<Weather> weather);
+    RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_ptr<Weather> weather = nullptr);
 
     void Update();
 

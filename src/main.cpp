@@ -30,12 +30,13 @@ void setup() {
     auto weather = std::make_shared<Weather>(rtc);
 
     displayMgr->Add(std::make_shared<SetTime>(rtc));
-    //displayMgr->Add(std::make_shared<Clock>(rtc)); // TODO: hardcoded for now, see below
-    displayMgr->Add(weather);
+    displayMgr->Add(std::make_shared<Clock>(rtc)); // TODO: hardcoded for now, see below
+    //displayMgr->Add(weather);
     displayMgr->Add(std::make_shared<ConfigMenu>());
 
     // for use with Home Assistant, uses shared_ptrs to update states
-    auto restServer = std::make_shared<RestServer>(displayMgr, weather); 
+    //auto restServer = std::make_shared<RestServer>(displayMgr, weather); 
+    auto restServer = std::make_shared<RestServer>(displayMgr); 
 
     // TODO: make switch/setting where default is Clock and options are [Clock, Weather]
     // TODO: set of displays change based on default display (so also need SetCoords page for Weather):

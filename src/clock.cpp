@@ -11,7 +11,7 @@ void Clock::Update() {
 #elif FCOS_CARDCLOCK || FCOS_CARDCLOCK2
     m_anim->Update();
     if (!m_pixels->IsDarkModeEnabled() || m_pixels->GetBrightness() >= 0.05f) {
-        m_pixels->ClearRoundLEDs({1, 1, 1});
+        m_pixels->ClearRoundLEDs();
     }
 
     int brightestLED = 0;

@@ -42,6 +42,11 @@ void RestServer::HandleDisplay() {
 }
 
 void RestServer::HandleWeather() {
+  if (!m_weather) {
+    m_webServer.send(400, "text/plain", "Weather not available");
+    return;
+  }
+
   if (!m_webServer.hasArg("forecast")) {
     m_webServer.send(400, "text/plain", "No forecast string provided");
     return;
