@@ -20,8 +20,8 @@ class Clock : public DefaultDisplay {
     virtual void Update() override;
 
   private:
-    void DrawDigits(const RgbColor color, char* text, int yPos);
-    void DrawClockDigits(const RgbColor color);
-    void DrawSunDigits(const RgbColor color);
-    void DrawSeparator(const int x, const int y, RgbColor color);
+    void DrawDigits(const RgbColor blendColor, char* text, int yPos);
+    void DrawClockDigits(const RgbColor blendColor);
+    void DrawSunDigits(const RgbColor blendColor);
+    void DrawSeparator(const int x, const int y);
 };
