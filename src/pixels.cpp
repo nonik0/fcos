@@ -107,7 +107,14 @@ void Pixels::Set(const int pos,
                 adjustedBrightness = 0.9f;
             }
         }
+  
         RgbColor scaledColor = ScaleBrightness(color, adjustedBrightness);
+
+        // ensure color is not dimmed to off
+        scaledColor.R = (color.R > 0 && scaledColor.R == 0) ? 1 : scaledColor.R;
+        scaledColor.G = (color.G > 0 && scaledColor.G == 0) ? 1 : scaledColor.G;
+        scaledColor.B = (color.B > 0 && scaledColor.B == 0) ? 1 : scaledColor.B;
+
         m_neoPixels.SetPixelColor(pos, scaledColor);
     }
 }

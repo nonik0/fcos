@@ -27,22 +27,20 @@ void setup() {
     // Display allows it (e.g. holding left at the Clock activates SetTime)
     auto displayMgr =
         std::make_shared<DisplayManager>(pixels, settings, rtc, joy);
-    auto weather = std::make_shared<Weather>(rtc);
-
+    
     displayMgr->Add(std::make_shared<SetTime>(rtc));
-    displayMgr->Add(std::make_shared<Clock>(rtc)); // TODO: hardcoded for now, see below
-    //displayMgr->Add(weather);
-    displayMgr->Add(std::make_shared<ConfigMenu>());
 
-    // for use with Home Assistant, uses shared_ptrs to update states
-    //auto restServer = std::make_shared<RestServer>(displayMgr, weather); 
+// TODO: eventually support multiple default displays? rename to primary display or something similar?
+#ifdef FORECAST
+    auto weather = std::make_shared<Weather>(rtc);
+    displayMgr->Add(weather);
+    auto restServer = std::make_shared<RestServer>(displayMgr, weather); 
+#else
+    displayMgr->Add(std::make_shared<Clock>(rtc));
     auto restServer = std::make_shared<RestServer>(displayMgr); 
-
-    // TODO: make switch/setting where default is Clock and options are [Clock, Weather]
-    // TODO: set of displays change based on default display (so also need SetCoords page for Weather):
-    // TODO:   clock displays:  0 = SetTime   <=>  1 = Clock    <=>   3 = ConfigMenu
-    // TODO: weather displays:  0 = SetCoords <=>  1 = Weather  <=>   3 = ConfigMenu
-    // TODO: or is it better to have all displays easy to switch between in a linear fashion?
+#endif
+    
+    displayMgr->Add(std::make_shared<ConfigMenu>());
 
     // 0 = SetTime   <=>   1 = Clock/Weather   <=>   3 = ConfigMenu
     displayMgr->SetDefaultAndActivateDisplay(1);
