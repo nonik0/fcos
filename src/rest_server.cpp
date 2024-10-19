@@ -9,6 +9,8 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_
   m_webServer.on("/display", [this]() { this->HandleDisplay(); });
   m_webServer.on("/weather", [this]() { this->HandleWeather(); });
   m_webServer.begin();
+
+  Wire.begin();
 }
 
 void RestServer::Update() {
@@ -36,6 +38,11 @@ void RestServer::HandleDisplay() {
     }
 
     m_dispManager->SetBlankingState(!display);
+
+    Wire.beginTransmission(0x13);
+    Wire.write((uint8_t)0x00);
+    Wire.write((uint8_t)display);
+    Wire.endTransmission();
   }
 
   m_webServer.send(200, "text/plain", display ? "on" : "off");
