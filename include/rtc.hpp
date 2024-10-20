@@ -7,11 +7,13 @@
 #elif FCOS_ESP8266
 #include <ESP8266WiFi.h>
 #endif
+#include <sunset.h>
 #include <map>
 #include <vector>
 
 #include <elapsed_time.hpp>
 #include <settings.hpp>
+
 
 class Rtc {
   private:
@@ -74,4 +76,51 @@ class Rtc {
 
     void AttachInterrupt();
     static inline void IRAM_ATTR InterruptISR();
+};
+
+
+class SunMoon {
+  private:
+    std::shared_ptr<Rtc> m_rtc;
+    std::shared_ptr<Settings> m_settings;
+    SunSet m_sun;
+
+    // hacK: year and month are never updated, just calculate julian date from day offset
+    int m_year{0};
+    int m_month{0};
+    int m_riseDay{0};
+    int m_setDay{0};
+    int m_sunrise{0};
+    int m_sunset{0};
+    
+  public:
+    SunMoon(std::shared_ptr<Settings> settings, std::shared_ptr<Rtc> rtc) : m_settings(settings), m_rtc(rtc) {
+      m_year = m_rtc->Year();
+      m_month = m_rtc->Month();
+      m_riseDay = m_rtc->Day();
+      m_setDay = m_rtc->Day();
+
+      m_sun.setPosition(LATITUDE, LONGITUDE, TIMEZONE); // hardcoded for now, settings later
+      m_sun.setCurrentDate(m_year, m_month, m_riseDay);
+    }
+
+    int getNextSunrise() {
+        // when past sunrise of current day, increment rise day and recalculate sunrise
+        if (m_rtc->Day() == m_riseDay && (m_rtc->Hour() * 60 + m_rtc->Minute()) > m_sunrise) {
+          m_sun.setCurrentDate(m_year, m_month, m_riseDay++); // this works at end of month because converted to julian date internally
+          m_sunrise = m_sun.calcSunrise();
+        }
+
+        return m_sunrise;
+    }
+
+    int getNextSunset() {
+        // when past sunset of current day, increment set day and recalculate sunset
+        if (m_rtc->Day() == m_setDay && (m_rtc->Hour() * 60 + m_rtc->Minute()) > m_sunset) {
+          m_setDay++; // sunrise calls setCurrentDate first
+          m_sunset = m_sun.calcSunset();
+        }
+
+        return m_sunset;
+    }
 };

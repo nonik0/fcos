@@ -12,7 +12,7 @@ class Weather : public DefaultDisplay {
     uint8_t m_aqi{123};
 
   public:
-    Weather(std::shared_ptr<Rtc> rtc) : DefaultDisplay(rtc) {}
+    Weather(std::shared_ptr<Rtc> rtc, std::shared_ptr<SunMoon> sunMoon) : DefaultDisplay(rtc, sunMoon) {}
 
     void UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, uint8_t aqi, String conditions);
 

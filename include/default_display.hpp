@@ -14,6 +14,7 @@
 class DefaultDisplay : public Display {
   protected:
     std::shared_ptr<Rtc> m_rtc;
+    std::shared_ptr<SunMoon> m_sunMoon;
     size_t m_animMode{0};
     bool m_shouldSaveSettings{false};
 
@@ -23,7 +24,7 @@ class DefaultDisplay : public Display {
     std::shared_ptr<Animator> m_anim;
 
   public:
-    DefaultDisplay(std::shared_ptr<Rtc> rtc) : Display(), m_rtc(rtc) {}
+    DefaultDisplay(std::shared_ptr<Rtc> rtc, std::shared_ptr<SunMoon> sunMoon) : Display(), m_rtc(rtc), m_sunMoon(sunMoon) {}
 
     virtual void Activate();
     virtual void Update() = 0;

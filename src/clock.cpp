@@ -14,12 +14,13 @@ void Clock::Update() {
         m_pixels->ClearRoundLEDs({1, 1, 1});
     }
 
-    if (m_curDay != m_rtc->Day()) {
-        m_curDay = m_rtc->Day();
-        m_sun.setCurrentDate(m_rtc->Year(), m_rtc->Month(), m_rtc->Day());
-        m_sunrise = m_sun.calcSunrise();
-        m_sunset = m_sun.calcSunset();
-    }
+    // // update times for next day after sunset
+    // if (m_curDay != m_rtc->Day()) {
+    //     m_curDay = m_rtc->Day();
+    //     m_sun.setCurrentDate(m_rtc->Year(), m_rtc->Month(), m_rtc->Day());
+    //     m_sunrise = m_sun.calcSunrise();
+    //     m_sunset = m_sun.calcSunset();
+    // }
 
     int brightestLED = 0;
     if (m_rtc->Millis() >= 666)
@@ -89,21 +90,25 @@ void Clock::DrawClockDigits(const RgbColor blendColor) {
 }
 
 void Clock::DrawSunDigits(const RgbColor blendColor) {
-    char text[10];
-
-    // show sunrise time if it's night, sunset if it's day
+    int sunrise = m_sunMoon->getNextSunrise();
+    int sunset = m_sunMoon->getNextSunset();
     int minIntoDay = m_rtc->Hour() * 60 + m_rtc->Minute();
-    bool isNight = minIntoDay >= m_sunset || minIntoDay < m_sunrise;
-    RgbColor daytimeColor = isNight ? RED : BLUE;
-    uint8_t hour = isNight ? m_sunrise / 60 : m_sunset / 60;
-    uint8_t minute = isNight ? m_sunrise % 60 : m_sunset % 60;
+    bool isNight = minIntoDay >= sunset || minIntoDay < sunrise;
+    bool showSunrise = isNight
+        ? (m_rtc->Second() / 10) < 8
+        : (m_rtc->Second() / 10) >= 8;
+
+    char text[10];
+    RgbColor shiftColor = showSunrise ? RED : BLUE;
+    uint8_t hour = showSunrise ? sunrise / 60 : sunset / 60;
+    uint8_t minute = showSunrise ? sunrise % 60 : sunset % 60;
 
     if ((*m_settings)["24HR"] != "24") {
-        hour %= 12;
+        hour = (hour - 1) % 12 + 1;
     }
 
     sprintf(text, "%2d:%02d", hour, minute);
-    DrawDigits(daytimeColor, text, 6);
+    DrawDigits(shiftColor, text, 6);
 }
 
 void Clock::DrawSeparator(const int x, const int y) {

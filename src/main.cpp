@@ -17,6 +17,7 @@ void setup() {
     auto settings = std::make_shared<Settings>();
     auto pixels = std::make_shared<Pixels>(settings);
     auto rtc = std::make_shared<Rtc>(settings);
+    auto sunMoon = std::make_shared<SunMoon>(settings, rtc);
     auto joy = std::make_shared<Joystick>();
     auto develUpdates = std::make_shared<DevelUpdates>(pixels);
 
@@ -32,11 +33,11 @@ void setup() {
 
 // TODO: eventually support multiple default displays? rename to primary display or something similar?
 #ifdef FORECAST
-    auto weather = std::make_shared<Weather>(rtc);
+    auto weather = std::make_shared<Weather>(rtc, sunMoon);
     displayMgr->Add(weather);
     auto restServer = std::make_shared<RestServer>(displayMgr, weather); 
 #else
-    displayMgr->Add(std::make_shared<Clock>(rtc));
+    displayMgr->Add(std::make_shared<Clock>(rtc, sunMoon));
     auto restServer = std::make_shared<RestServer>(displayMgr); 
 #endif
     
