@@ -10,6 +10,7 @@
 #include <rtc.hpp>
 #include <set_time.hpp>
 #include <settings.hpp>
+#include <sun_moon.hpp>
 
 class DefaultDisplay : public Display {
   protected:

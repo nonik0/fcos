@@ -1,15 +1,17 @@
 #include <rest_server.hpp>
 
-RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_ptr<SunMoon> sunMoon,  std::shared_ptr<Weather> weather) {
+RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_ptr<Rtc> rtc, std::shared_ptr<SunMoon> sunMoon,  std::shared_ptr<Weather> weather) {
   m_dispManager = dispManager;
-  m_weather = weather;
+  m_rtc = rtc;
   m_sunMoon = sunMoon;
+  m_weather = weather;
 
   // WebServer.on needs static ref so we capture this ptr in a lambda
   m_webServer.on("/", [this]() { this->HandleIndex(); });
+  m_webServer.on("/datetime", [this]() { this->HandleDateTime(); });
   m_webServer.on("/display", [this]() { this->HandleDisplay(); });
-  m_webServer.on("/weather", [this]() { this->HandleWeather(); });
   m_webServer.on("/moonphase", [this]() { this->HandleMoonPhase(); });
+  m_webServer.on("/weather", [this]() { this->HandleWeather(); });
   m_webServer.begin();
 
   Wire.begin();
@@ -21,6 +23,18 @@ void RestServer::Update() {
 
 void RestServer::HandleIndex() {
   m_webServer.send(200, "text/plain", "CC2");
+}
+
+void RestServer::HandleDateTime() {
+  if (!m_rtc) {
+    m_webServer.send(400, "text/plain", "RTC not available");
+    return;
+  }
+
+  char response[100];
+  snprintf(response, sizeof(response), "%d/%d/%d %02d:%02d:%02d", m_rtc->Year(), m_rtc->Month(), m_rtc->Day(), m_rtc->Hour(), m_rtc->Minute(), m_rtc->Second());
+
+  m_webServer.send(200, "text/plain", response);
 }
 
 void RestServer::HandleDisplay() {
@@ -56,8 +70,21 @@ void RestServer::HandleMoonPhase() {
     return;
   }
 
-  int phase = m_sunMoon->getMoonPhase();
-  m_webServer.send(200, "text/plain", String(phase));
+  MoonPhase phase = m_sunMoon->getMoonPhase();
+
+  String phaseStr = "Unknown";
+  switch(phase) {
+    case NEW_MOON: phaseStr = "New Moon"; break;
+    case WAXING_CRESCENT: phaseStr = "Waxing Crescent"; break;
+    case FIRST_QUARTER: phaseStr = "First Quarter"; break;
+    case WAXING_GIBBOUS: phaseStr = "Waxing Gibbous"; break;
+    case FULL_MOON: phaseStr = "Full Moon"; break;
+    case WANING_GIBBOUS: phaseStr = "Waning Gibbous"; break;
+    case LAST_QUARTER: phaseStr = "Last Quarter"; break;
+    case WANING_CRESCENT: phaseStr = "Waning Crescent"; break;
+  }
+
+  m_webServer.send(200, "text/plain", phaseStr);
 }
 
 void RestServer::HandleWeather() {

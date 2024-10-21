@@ -119,7 +119,6 @@ void Weather::Update() {
 
     // alternate between humidity and aqi
     if ((m_rtc->Second() / 5) % 2 == 0) { // swap every 6 seconds
-
         sprintf(text, "%d%%\0", m_humidity);
         m_pixels->DrawText(4, 6, text, m_anim->digitColors[1], true);
     }
@@ -150,18 +149,20 @@ void Weather::Update() {
         secondPart = 1;
     int8_t cycle = 3 * (m_rtc->Second() % 4) + secondPart;
 
+    // TODO: reduce the number of calls to these functions more
     int sunrise = m_sunMoon->getNextSunrise();
     int sunset = m_sunMoon->getNextSunset();
     int minIntoDay = m_rtc->Hour() * 60 + m_rtc->Minute();
     bool isNight = minIntoDay >= sunset || minIntoDay < sunrise;
-    if (isNight && m_moonPhase < 0) {
+    if (isNight && m_moonPhase == NOT_NIGHT) {
         m_moonPhase = m_sunMoon->getMoonPhase();
     }
-    else if (!isNight && m_moonPhase >= 0) {
+    else if (!isNight && m_moonPhase != NOT_NIGHT) {
         m_moonPhase = NOT_NIGHT;
     }
     
     m_pixels->DrawWeatherLEDs(m_conditions, m_moonPhase, cycle);
+    //m_pixels->DrawWeatherLEDs(CLEAR, (MoonPhase)((m_rtc->Second() / 2) % 8), cycle);
 
     CheckIfWaitingToSaveSettings();
 }

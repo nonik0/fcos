@@ -21,7 +21,7 @@ static RgbColor DARK_RED(128, 0, 0);
 static RgbColor DARK_GREEN(0, 128, 0);
 static RgbColor DARK_BLUE(0, 0, 128);
 static RgbColor DARK_YELLOW(128, 128, 0);
-static RgbColor PALE_YELLOW(96, 96, 32);
+static RgbColor PALE_YELLOW(112, 112, 32);
 static RgbColor DARK_CYAN(0, 128, 128);
 static RgbColor DARK_MAGENTA(128, 0, 128);
 static RgbColor DARK_PURPLE(32, 0, 224);
