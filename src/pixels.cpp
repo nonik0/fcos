@@ -434,6 +434,7 @@ void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8
             ring0Len = RING_SIZE;
             break;
         case FULL_MOON:
+            ring2Len = RING_SIZE;
             ring1Len = RING_SIZE;
             ring0Len = RING_SIZE;
             break;
@@ -444,14 +445,14 @@ void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8
     for (int i = 0; i < len; i++) {
         int8_t pos = (startPos + i) % RING_SIZE;
 
-        if (IsInWheelRange(pos, ring0Pos, ring0Pos + ring0Len)) {
-            DrawRingLED(0, pos, DARK_YELLOW);
+        if (ring0Len > 0 && IsInWheelRange(pos, ring0Pos, ring0Pos + ring0Len)) {
+            DrawRingLED(0, pos, PALE_YELLOW);
         }
-        if (IsInWheelRange(pos, ring1Pos, ring1Pos + ring1Len)) {
-            DrawRingLED(1, pos, DARK_YELLOW);
+        if (ring1Len > 0 && IsInWheelRange(pos, ring1Pos, ring1Pos + ring1Len)) {
+            DrawRingLED(1, pos, PALE_YELLOW);
         }
-        if (IsInWheelRange(pos, ring2Pos, ring2Pos + ring2Len)) {
-            DrawRingLED(2, pos, DARK_YELLOW);
+        if (ring2Len > 0 && IsInWheelRange(pos, ring2Pos, ring2Pos + ring2Len)) {
+            DrawRingLED(2, pos, PALE_YELLOW);
         }
     }
 }
