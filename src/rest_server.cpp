@@ -1,13 +1,15 @@
 #include <rest_server.hpp>
 
-RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_ptr<Weather> weather) {
+RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager, std::shared_ptr<SunMoon> sunMoon,  std::shared_ptr<Weather> weather) {
   m_dispManager = dispManager;
   m_weather = weather;
+  m_sunMoon = sunMoon;
 
   // WebServer.on needs static ref so we capture this ptr in a lambda
   m_webServer.on("/", [this]() { this->HandleIndex(); });
   m_webServer.on("/display", [this]() { this->HandleDisplay(); });
   m_webServer.on("/weather", [this]() { this->HandleWeather(); });
+  m_webServer.on("/moonphase", [this]() { this->HandleMoonPhase(); });
   m_webServer.begin();
 
   Wire.begin();
@@ -46,6 +48,16 @@ void RestServer::HandleDisplay() {
   }
 
   m_webServer.send(200, "text/plain", display ? "on" : "off");
+}
+
+void RestServer::HandleMoonPhase() {
+  if (!m_sunMoon) {
+    m_webServer.send(400, "text/plain", "Moon phase not available");
+    return;
+  }
+
+  int phase = m_sunMoon->getMoonPhase();
+  m_webServer.send(200, "text/plain", String(phase));
 }
 
 void RestServer::HandleWeather() {

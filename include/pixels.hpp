@@ -47,7 +47,7 @@ enum ScrollDirection_e {
 };
 
 enum WeatherConditions {
-    SUNNY,
+    CLEAR,
     PARTLY_CLOUDY,
     CLOUDY,
     RAINY,
@@ -57,13 +57,19 @@ enum WeatherConditions {
     SLEET,
     WINDY,
     FOGGY,
-    // night
-    PARTLY_CLEAR,
-    CLEAR_FULL,
-    CLEAR_WANE,
-    CLEAR_WAX,
-    CLEAR_NEW,
     UNKNOWN,
+};
+
+enum MoonPhase {
+    NOT_NIGHT = -1,
+    NEW_MOON = 0,
+    WAXING_CRESCENT = 1,
+    FIRST_QUARTER = 2,
+    WAXING_GIBBOUS = 3,
+    FULL_MOON = 4,
+    WANING_GIBBOUS = 5,
+    LAST_QUARTER = 6,
+    WANING_CRESCENT = 7,
 };
 
 enum PixelsConfig_e {
@@ -228,12 +234,12 @@ class Pixels {
                         const RgbColor color,
                         const int brightestLED = 0);  // 0,1,2
 
-    void DrawWeatherLEDs(const WeatherConditions type, const int8_t cycle);
+    void DrawWeatherLEDs(const WeatherConditions type, const MoonPhase moonPhase, const int8_t cycle);
 
     // TODO: private
     void DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle);
 
-    void DrawMoonLEDs(int8_t startPos, int8_t len, int8_t cycle);
+    void DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8_t cycle);
 
     void DrawCloudyLEDs(int8_t startPos, int8_t len, int8_t cycle);
 

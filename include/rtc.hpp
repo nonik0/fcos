@@ -12,6 +12,7 @@
 #include <vector>
 
 #include <elapsed_time.hpp>
+#include <pixels.hpp> // for MoonPhase
 #include <settings.hpp>
 
 
@@ -27,7 +28,7 @@ class Rtc {
     Rtc_Pcf8563 m_rtc;
     bool m_isInitialized{false};
 
-    uint8_t m_day{0}, m_month{0}, m_year{0};  // TODO
+    uint8_t m_day{0}, m_month{0}, m_year{0};
     uint8_t m_hour{0}, m_minute{0}, m_second{0};  // 12:00:00 AM
     size_t m_millisAtInterrupt{0};
     size_t m_uptime{0};
@@ -122,5 +123,33 @@ class SunMoon {
         }
 
         return m_sunset;
+    }
+
+    MoonPhase getMoonPhase() {
+      int phase = m_sun.moonPhase();
+      MoonPhase moonPhase;
+
+      //double percentageFull = (std::abs(15 - phase) / 15.0) * 100;
+
+      if (phase == 0 || phase == 29) {
+          moonPhase = NEW_MOON;
+      } else if (phase >= 1 && phase <= 6) {
+          moonPhase = WAXING_CRESCENT;
+      } else if (phase == 7) {
+          moonPhase = FIRST_QUARTER;
+      } else if (phase >= 8 && phase <= 14) {
+          moonPhase = WAXING_GIBBOUS;
+      } else if (phase == 15) {
+          moonPhase = FULL_MOON;
+          //percentageFull = 100.0;  // Full moon is 100% full
+      } else if (phase >= 16 && phase <= 22) {
+          moonPhase = WANING_GIBBOUS;
+      } else if (phase == 23) {
+          moonPhase = LAST_QUARTER;
+      } else if (phase >= 24 && phase <= 28) {
+          moonPhase = WANING_CRESCENT;
+      }
+
+      return moonPhase;
     }
 };

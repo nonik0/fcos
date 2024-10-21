@@ -6,6 +6,7 @@ class Weather : public DefaultDisplay {
     ElapsedTime m_updateTimer;
     //auto m_updateTask = nullptr;
     WeatherConditions m_conditions{UNKNOWN};
+    MoonPhase m_moonPhase{NOT_NIGHT};
     int8_t m_temperatureLow{1};
     int8_t m_temperatureHigh{99};
     uint8_t m_humidity{50};

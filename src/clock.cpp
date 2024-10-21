@@ -95,8 +95,8 @@ void Clock::DrawSunDigits(const RgbColor blendColor) {
     int minIntoDay = m_rtc->Hour() * 60 + m_rtc->Minute();
     bool isNight = minIntoDay >= sunset || minIntoDay < sunrise;
     bool showSunrise = isNight
-        ? (m_rtc->Second() / 10) < 8
-        : (m_rtc->Second() / 10) >= 8;
+        ? (m_rtc->Second() % 10) < 8
+        : (m_rtc->Second() % 10) >= 8;
 
     char text[10];
     RgbColor shiftColor = showSunrise ? RED : BLUE;

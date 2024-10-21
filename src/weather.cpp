@@ -56,18 +56,12 @@ void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, 
     conditions.toLowerCase();
 
     // weird ones are probably for Home Assistant forecast conditions strings
-    if (conditions == "sunny" || conditions == "clear")
-        m_conditions = WeatherConditions::SUNNY;
-    else if (conditions == "clear-night")
-        m_conditions = WeatherConditions::CLEAR_FULL;
-    // TODO: moon at night? with phases??
+    if (conditions == "sunny" || conditions == "clear" || conditions == "clear-night")
+        m_conditions = WeatherConditions::CLEAR;
     else if (conditions == "cloudy" || conditions == "overcast" || conditions == "exceptional" )
         m_conditions = WeatherConditions::CLOUDY;
-    else if (conditions == "partlycloudy" || conditions == "partlysunny" || conditions == "partlyovercast")
-        if (m_rtc->Hour() < 6 || m_rtc->Hour() > 18)
-            m_conditions = WeatherConditions::PARTLY_CLEAR;
-        else
-            m_conditions = WeatherConditions::PARTLY_CLOUDY;
+    else if (conditions == "partlycloudy" || conditions == "partlyclear" || conditions == "partlysunny" || conditions == "partlyovercast")
+        m_conditions = WeatherConditions::PARTLY_CLOUDY;
     else if (conditions == "rain" || conditions == "rainy" || conditions == "pouring")
         m_conditions = WeatherConditions::RAINY;
     else if (conditions == "snowy" || conditions == "snow")
@@ -82,8 +76,6 @@ void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, 
         m_conditions = WeatherConditions::HAIL;
     else if (conditions == "sleet" || conditions == "snowy-rainy")
         m_conditions = WeatherConditions::SLEET;
-    else if (conditions == "partlyclear")
-        m_conditions = WeatherConditions::PARTLY_CLEAR;
     else
         m_conditions = WeatherConditions::UNKNOWN;
 }
@@ -150,8 +142,6 @@ void Weather::Update() {
         m_pixels->DrawText(12, 6, "Q",  m_anim->digitColors[0], true);
     }
 
-
-
     // weather animation cycle increments every 1/3 second, cycles from 0 to 11 every 4 seconds
     int8_t secondPart = 0;
     if (m_rtc->Millis() >= 666)
@@ -159,8 +149,19 @@ void Weather::Update() {
     else if (m_rtc->Millis() >= 333)
         secondPart = 1;
     int8_t cycle = 3 * (m_rtc->Second() % 4) + secondPart;
+
+    int sunrise = m_sunMoon->getNextSunrise();
+    int sunset = m_sunMoon->getNextSunset();
+    int minIntoDay = m_rtc->Hour() * 60 + m_rtc->Minute();
+    bool isNight = minIntoDay >= sunset || minIntoDay < sunrise;
+    if (isNight && m_moonPhase < 0) {
+        m_moonPhase = m_sunMoon->getMoonPhase();
+    }
+    else if (!isNight && m_moonPhase >= 0) {
+        m_moonPhase = NOT_NIGHT;
+    }
     
-    m_pixels->DrawWeatherLEDs(m_conditions, cycle);
+    m_pixels->DrawWeatherLEDs(m_conditions, m_moonPhase, cycle);
 
     CheckIfWaitingToSaveSettings();
 }

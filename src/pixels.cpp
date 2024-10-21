@@ -404,12 +404,55 @@ void Pixels::DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle) {
     }
 }
 
-// TODO
-void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8_t cycle) {
+    int ring0Pos = 0, ring0Len = 0, ring1Pos = 0, ring1Len = 0, ring2Pos = 0, ring2Len = 0;
+
+    switch (moonPhase) {
+        case NEW_MOON:
+            ring0Len = RING_SIZE;
+            break;
+        case WAXING_CRESCENT:
+        case WANING_CRESCENT:
+            ring2Pos = WAXING_CRESCENT ? 11 : 5;
+            ring2Len = 7;
+            ring1Pos = ring2Pos + 1 % RING_SIZE;
+            ring1Len = ring2Len - 2;
+            ring0Pos = ring1Pos + 1 % RING_SIZE;
+            ring0Len = ring1Len - 2;
+            break;
+        case FIRST_QUARTER:
+        case LAST_QUARTER:
+            ring2Pos = ring1Pos = ring0Pos = FIRST_QUARTER ? 11 : 5;
+            ring2Len = ring1Len = ring0Len = 7;
+            break;
+        case WAXING_GIBBOUS:
+        case WANING_GIBBOUS:
+            ring2Pos = WAXING_GIBBOUS ? 11 : 5;
+            ring2Len = 7;
+            ring1Pos = ring2Pos - 1 % RING_SIZE;
+            ring1Len = ring2Len + 2;
+            ring0Len = RING_SIZE;
+            break;
+        case FULL_MOON:
+            ring1Len = RING_SIZE;
+            ring0Len = RING_SIZE;
+            break;
+        default:
+            break;
+    }
+
     for (int i = 0; i < len; i++) {
         int8_t pos = (startPos + i) % RING_SIZE;
-        DrawRingLED(0, pos, DARK_YELLOW);
-        DrawRingLED(1, pos, DARK_YELLOW);
+
+        if (IsInWheelRange(pos, ring0Pos, ring0Pos + ring0Len)) {
+            DrawRingLED(0, pos, DARK_YELLOW);
+        }
+        if (IsInWheelRange(pos, ring1Pos, ring1Pos + ring1Len)) {
+            DrawRingLED(1, pos, DARK_YELLOW);
+        }
+        if (IsInWheelRange(pos, ring2Pos, ring2Pos + ring2Len)) {
+            DrawRingLED(2, pos, DARK_YELLOW);
+        }
     }
 }
 
@@ -490,13 +533,21 @@ void Pixels::DrawWindLEDs(const int8_t cycle) {
     }
 }
 
-void Pixels::DrawWeatherLEDs(const WeatherConditions type, const int8_t cycle) {
+void Pixels::DrawWeatherLEDs(const WeatherConditions type, const MoonPhase moonPhase, const int8_t cycle) {
     switch (type) {
-        case SUNNY:
-            DrawSunnyLEDs(0, RING_SIZE, cycle);
+        case CLEAR:
+            if (moonPhase == NOT_NIGHT) {
+                DrawSunnyLEDs(0, RING_SIZE, cycle);
+            } else {
+                DrawMoonLEDs(0, RING_SIZE, moonPhase, cycle);
+            }
             break;
         case PARTLY_CLOUDY:
-            DrawSunnyLEDs(9, 5, cycle);
+            if (moonPhase == NOT_NIGHT) {
+                DrawSunnyLEDs(9, 5, cycle);
+            } else {
+                DrawMoonLEDs(9, 5, moonPhase, cycle);
+            }
             DrawCloudyLEDs(2, 7, cycle);
             break;
         case RAINY:
@@ -532,22 +583,6 @@ void Pixels::DrawWeatherLEDs(const WeatherConditions type, const int8_t cycle) {
                 DrawRingLED(1, pos, DARK_GRAY);
                 DrawRingLED(2, pos, DARK_GRAY);
             }
-            break;
-        case PARTLY_CLEAR:
-            DrawMoonLEDs(9, 5, cycle);
-            DrawCloudyLEDs(2, 7, cycle);
-            break;
-        case CLEAR_FULL:
-            DrawMoonLEDs(0, RING_SIZE, cycle);
-            break;
-        case CLEAR_WAX:
-            DrawMoonLEDs(7, 5, cycle);
-            break;
-        case CLEAR_WANE:
-            DrawMoonLEDs(0, 5, cycle);
-            break;
-        case CLEAR_NEW:
-            //DrawMoonLEDs(3, 5, cycle);
             break;
         default:
             for (int pos = 0; pos < RING_SIZE; pos++) {

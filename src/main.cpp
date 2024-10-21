@@ -35,10 +35,10 @@ void setup() {
 #ifdef FORECAST
     auto weather = std::make_shared<Weather>(rtc, sunMoon);
     displayMgr->Add(weather);
-    auto restServer = std::make_shared<RestServer>(displayMgr, weather); 
+    auto restServer = std::make_shared<RestServer>(displayMgr, sunMoon, weather); 
 #else
     displayMgr->Add(std::make_shared<Clock>(rtc, sunMoon));
-    auto restServer = std::make_shared<RestServer>(displayMgr); 
+    auto restServer = std::make_shared<RestServer>(displayMgr, sunMoon); 
 #endif
     
     displayMgr->Add(std::make_shared<ConfigMenu>());
