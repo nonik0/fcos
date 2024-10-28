@@ -160,8 +160,14 @@ void Weather::Update() {
     else if (!isNight && m_moonPhase != NOT_NIGHT) {
         m_moonPhase = NOT_NIGHT;
     }
+
+    // if not clear at night, occasionally force clear weather to show moon phase
+    WeatherConditions conditionsToShow = m_conditions;
+    if (isNight && m_conditions != CLEAR && m_rtc->Second() % 15 > 12) { // show moon phase 3 out of 15 seconds
+        conditionsToShow = CLEAR;
+    }
     
-    m_pixels->DrawWeatherLEDs(m_conditions, m_moonPhase, cycle);
+    m_pixels->DrawWeatherLEDs(conditionsToShow, m_moonPhase, cycle);
     //m_pixels->DrawWeatherLEDs(CLEAR, (MoonPhase)((m_rtc->Second() / 2) % 8), cycle);
 
     CheckIfWaitingToSaveSettings();
