@@ -413,7 +413,7 @@ void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8
             break;
         case WAXING_CRESCENT:
         case WANING_CRESCENT:
-            ring2Pos = WAXING_CRESCENT ? 11 : 5;
+            ring2Pos = WAXING_CRESCENT ? 5 : 11;
             ring2Len = 7;
             ring1Pos = ring2Pos + 1 % RING_SIZE;
             ring1Len = ring2Len - 2;
@@ -422,12 +422,12 @@ void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8
             break;
         case FIRST_QUARTER:
         case LAST_QUARTER:
-            ring2Pos = ring1Pos = ring0Pos = FIRST_QUARTER ? 11 : 5;
+            ring2Pos = ring1Pos = ring0Pos = FIRST_QUARTER ? 5 : 11;
             ring2Len = ring1Len = ring0Len = 7;
             break;
         case WAXING_GIBBOUS:
         case WANING_GIBBOUS:
-            ring2Pos = WAXING_GIBBOUS ? 11 : 5;
+            ring2Pos = WAXING_GIBBOUS ? 5 : 11;
             ring2Len = 7;
             ring1Pos = ring2Pos - 1 % RING_SIZE;
             ring1Len = ring2Len + 2;
@@ -516,9 +516,9 @@ void Pixels::DrawLightningLEDs(int8_t startPos, int8_t len, int8_t cycle) {
 }
 
 void Pixels::DrawWindLEDs(const int8_t cycle) {
-    const int8_t Offset0 = 0;
-    const int8_t Offset1 = 4;
-    const int8_t Offset2 = 8;
+    const int8_t Offset0 = 10;
+    const int8_t Offset1 = 5;
+    const int8_t Offset2 = 0;
     const int8_t BaseGustWidth = 5;
 
     for (int8_t pos = RING_SIZE - 1; pos >= 0; pos--) {
