@@ -24,7 +24,8 @@ class SunMoon {
       m_riseDay = m_rtc->Day();
       m_setDay = m_rtc->Day();
 
-      m_sun.setPosition(LATITUDE, LONGITUDE, TIMEZONE); // hardcoded for now, settings later
+      int utcOffset = m_rtc->GetTimezoneUtcOffset() / 60;
+      m_sun.setPosition(LATITUDE, LONGITUDE, utcOffset);
       m_sun.setCurrentDate(m_year, m_month, m_riseDay);
     }
 

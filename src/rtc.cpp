@@ -76,6 +76,14 @@ int Rtc::GetTimezoneNumFromName(const String& name) {
     return 6;  // UTC 0; always return something valid
 }
 
+int Rtc::GetTimezoneUtcOffset() {
+    Timezone tz = m_timezones[(*m_settings)["TIMEZONE"]].tz;
+    time_t utc = mktime(&m_timeinfo);
+    time_t local = tz.toLocal(utc);
+    time_t diff = local - utc;
+    return diff / 60;
+}
+
 void Rtc::ForceNTPUpdate() {
     m_uptimeForNextNTPUpdate = m_uptime;
 }

@@ -59,6 +59,7 @@ class Rtc {
     void SetClockToZero();
     std::vector<String> GetTimezoneNames();
     int GetTimezoneNumFromName(const String& name);
+    int GetTimezoneUtcOffset();
     void ForceNTPUpdate();
 
   private:
