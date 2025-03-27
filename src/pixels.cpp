@@ -506,7 +506,7 @@ void Pixels::DrawLightningLEDs(int8_t startPos, int8_t len, int8_t cycle) {
     for (int i = 0; i < len; i++) {
         int pos = (startPos + i) % RING_SIZE;
         
-        if (random(0, 66) == 0) {
+        if (random(0, 40) == 0) {
             DrawRingLED(0, pos, LIGHT_YELLOW);
             DrawRingLED(1, pos, LIGHT_YELLOW);
             DrawRingLED(2, pos, LIGHT_YELLOW);
