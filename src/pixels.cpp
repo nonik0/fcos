@@ -184,8 +184,13 @@ int Pixels::DrawChar(int x,
         // characters are implemented in characters.inc as a list of if/else statements
         // ---------------
 #if FCOS_CARDCLOCK || FCOS_CARDCLOCK2
-#include "characters/cc.inc"
+        if (useSmallFont) {
 #include "characters/cc3x4.inc"
+        }
+        else {
+#include "characters/cc.inc"
+        }
+        
         // show a ? for unknown characters
         if (charData.empty()) {
             if (useSmallFont) {
@@ -229,7 +234,7 @@ int Pixels::DrawChar(int x,
         }
         
         // Draw the character with gradient
-        for (int row = 0; row < CHAR_HEIGHT; ++row) {
+        for (int row = 0; row < charHeight; ++row) {
             for (int column = x; column < x + charWidth; ++column) {
                 if (column >= 0 && column < DISPLAY_WIDTH && *data) {
                     // Calculate gradient color based on position

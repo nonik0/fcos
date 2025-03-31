@@ -32,7 +32,7 @@ void setup() {
     displayMgr->Add(std::make_shared<SetTime>(rtc));
 
     // TODO: eventually support multiple default displays? rename to primary display or something similar?
-#ifdef FORECAST
+#ifdef WEATHER
     auto weather = std::make_shared<Weather>(rtc, sunMoon);
     displayMgr->Add(weather);
     auto restServer = std::make_shared<RestServer>(displayMgr, rtc, sunMoon, weather); 

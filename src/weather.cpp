@@ -1,83 +1,9 @@
 #include <weather.hpp>
 
-// TODO: very rough, need to figure out weather provider 
-// void Weather::UpdateConditions(async args) {
-//     try {
-//         WiFiClient wifiClient;
-//         HTTPClient httpClient;
-//         String requestUri = "https://api.tomorrow.io/v4/weather/forecast?location=98112&timesteps=daily&apikey=oops";
-
-//         httpClient.begin(wifiClient, requestUri);
-
-//         int httpResponseCode = httpClient.GET();
-//         if (httpResponseCode != 200)
-//         {
-//             return;
-//         }
-
-//         String jsonString = httpClient.getString();
-//         httpClient.end();
-
-//         DynamicJsonDocument jsonDoc(16 * 1024);
-//         DeserializationError jsonError = deserializeJson(jsonDoc, jsonString);
-//         if (jsonError)
-//         {
-//             return;
-//         }
-
-//         auto today = jsonDoc["timelines"]["daily"][0]["values"];
-
-//         m_temperatureHigh = today["temperatureMax"].as<int>();
-//         m_temperatureLow = today["temperatureMin"].as<int>();
-
-//         // convert C to F
-//         m_temperatureHigh = m_temperatureHigh * 9 / 5 + 32;
-//         m_temperatureLow = m_temperatureLow * 9 / 5 + 32;
-
-//         int weatherCodeMin = today["weatherCodeMin"].as<int>();
-//         int weatherCodeMax = today["weatherCodeMax"].as<int>();
-
-//         // https://docs.tomorrow.io/reference/data-layers-weather-codes
-//         if (weatherCodeMin < 2000) {
-//             m_weatherType = WeatherType::SUNNY;
-//         } else {
-//             m_weatherType = WeatherType::RAINY;
-//         }
-//     } catch (const std::exception& e) {
-//     }
-// }
-
-void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, uint8_t aqi, String conditions) {
-    m_temperatureLow = tempLow;
-    m_temperatureHigh = tempHigh;
-    m_humidity = humidity;
-    m_aqi = aqi;
-
-    conditions.toLowerCase();
-
-    // weird ones are probably for Home Assistant forecast conditions strings
-    if (conditions == "sunny" || conditions == "clear" || conditions == "clear-night")
-        m_conditions = WeatherConditions::CLEAR;
-    else if (conditions == "cloudy" || conditions == "overcast" || conditions == "exceptional" )
-        m_conditions = WeatherConditions::CLOUDY;
-    else if (conditions == "partlycloudy" || conditions == "partlyclear" || conditions == "partlysunny" || conditions == "partlyovercast")
-        m_conditions = WeatherConditions::PARTLY_CLOUDY;
-    else if (conditions == "rain" || conditions == "rainy" || conditions == "pouring")
-        m_conditions = WeatherConditions::RAINY;
-    else if (conditions == "snowy" || conditions == "snow")
-        m_conditions = WeatherConditions::SNOWY;
-    else if (conditions == "windy" || conditions == "windy-variant")
-        m_conditions = WeatherConditions::WINDY;
-    else if (conditions == "thunderstorm" || conditions == "lightning" || conditions == "lightning-rainy")
-        m_conditions = WeatherConditions::THUNDERSTORM;
-    else if (conditions == "fog" || conditions == "foggy")
-        m_conditions = WeatherConditions::FOGGY;
-    else if (conditions == "hail")
-        m_conditions = WeatherConditions::HAIL;
-    else if (conditions == "sleet" || conditions == "snowy-rainy")
-        m_conditions = WeatherConditions::SLEET;
-    else
-        m_conditions = WeatherConditions::UNKNOWN;
+void Weather::Activate() {
+    LoadSettings();
+    SetAnimator(CreateAnimator(m_pixels, m_settings, m_rtc,
+                               (AnimatorType_e)m_animMode));
 }
 
 void Weather::Update() {
@@ -90,17 +16,17 @@ void Weather::Update() {
         m_pixels->ClearRoundLEDs({0, 0, 0});
     }
 
-    // TODO: for future async weather updates with no rest server for updating forecast
-    // if (m_updateTask not active && (m_updateTimer.Ms() >= 1000 * 60 * 10 || m_weatherType == WeatherType::UNKNOWN)) {
-    //     m_updateTimer.Reset();
-    //     xTaskCreate(UpdateConditions, "UpdateConditions", 4096, NULL, 10, &m_updateTask);
-    // }
-
-    // TEST: uncomment to cycle through weather conditions every 8s
-    // if (m_updateTimer.Ms() >= 1000 * 8) {
-    //     m_updateTimer.Reset();
-    //     m_conditions = static_cast<WeatherConditions>((static_cast<int>(m_conditions) + 1) % 10);
-    // }
+    // clear forecast data if no recent update
+    if (m_sinceLastForecastUpdate.Ms() > 60*1000*30) {
+        m_sinceLastForecastUpdate.Reset();
+        
+        m_conditions = UNKNOWN;
+        m_moonPhase = NOT_NIGHT;
+        m_temperatureLow = 0;
+        m_temperatureHigh = 0;
+        m_humidity = 0;
+        m_aqi = 0;
+    }
 
     // alternate between showing high and low temperature, shifting colors accordingly to indicate which is being shown
     char text[10];
@@ -149,7 +75,7 @@ void Weather::Update() {
         secondPart = 1;
     int8_t cycle = 3 * (m_rtc->Second() % 4) + secondPart;
 
-    // TODO: reduce the number of calls to these functions more
+    // TODO: reduce the number of calls to these functions
     int sunrise = m_sunMoon->getNextSunrise();
     int sunset = m_sunMoon->getNextSunset();
     int minIntoDay = m_rtc->Hour() * 60 + m_rtc->Minute();
@@ -161,7 +87,7 @@ void Weather::Update() {
         m_moonPhase = NOT_NIGHT;
     }
 
-    // if not clear at night, occasionally force clear weather to show moon phase
+    // if not clear at night, periodically force clear weather which also shows moon phase
     WeatherConditions conditionsToShow = m_conditions;
     if (isNight && m_conditions != CLEAR && m_rtc->Second() % 15 > 12) { // show moon phase 3 out of 15 seconds
         conditionsToShow = CLEAR;
@@ -173,10 +99,116 @@ void Weather::Update() {
     CheckIfWaitingToSaveSettings();
 }
 
+void Weather::UpdateForecast(int8_t tempLow, int8_t tempHigh, uint8_t humidity, uint8_t aqi, String conditions) {
+    m_sinceLastForecastUpdate.Reset();
+
+    m_temperatureLow = tempLow;
+    m_temperatureHigh = tempHigh;
+    m_humidity = humidity;
+    m_aqi = aqi;
+
+    conditions.toLowerCase();
+
+    // weird ones are probably for Home Assistant forecast conditions strings
+    if (conditions == "sunny" || conditions == "clear" || conditions == "clear-night")
+        m_conditions = WeatherConditions::CLEAR;
+    else if (conditions == "cloudy" || conditions == "overcast" || conditions == "exceptional" )
+        m_conditions = WeatherConditions::CLOUDY;
+    else if (conditions == "partlycloudy" || conditions == "partlyclear" || conditions == "partlysunny" || conditions == "partlyovercast")
+        m_conditions = WeatherConditions::PARTLY_CLOUDY;
+    else if (conditions == "rain" || conditions == "rainy" || conditions == "pouring")
+        m_conditions = WeatherConditions::RAINY;
+    else if (conditions == "snowy" || conditions == "snow")
+        m_conditions = WeatherConditions::SNOWY;
+    else if (conditions == "windy" || conditions == "windy-variant")
+        m_conditions = WeatherConditions::WINDY;
+    else if (conditions == "thunderstorm" || conditions == "lightning" || conditions == "lightning-rainy")
+        m_conditions = WeatherConditions::THUNDERSTORM;
+    else if (conditions == "fog" || conditions == "foggy")
+        m_conditions = WeatherConditions::FOGGY;
+    else if (conditions == "hail")
+        m_conditions = WeatherConditions::HAIL;
+    else if (conditions == "sleet" || conditions == "snowy-rainy")
+        m_conditions = WeatherConditions::SLEET;
+    else
+        m_conditions = WeatherConditions::UNKNOWN;
+}
+
 void Weather::SetAnimator(std::shared_ptr<Animator> anim) {
     m_anim = anim;
     m_anim->Start();
     m_anim->SetColor((*m_settings)["COLR"].as<uint8_t>());
+}
+
+void Weather::Up(const Button::Event_e evt) {
+    if (evt == Button::PRESS || evt == Button::REPEAT) {
+        m_anim->Up();
+        PrepareToSaveSettings();
+    }
+};
+
+void Weather::Down(const Button::Event_e evt) {
+    if (evt == Button::PRESS || evt == Button::REPEAT) {
+        m_anim->Down();
+        PrepareToSaveSettings();
+    }
+};
+
+bool Weather::Left(const Button::Event_e evt) {
+    if (evt == Button::PRESS) {
+        m_anim->Left();
+        // temporary hack for photos
+        // m_rtc->SetTime(12, 34, 00);
+    }
+    return evt != Button::LONG_PRESS;  // when long pressed, move to SetTime display
+};
+
+bool Weather::Right(const Button::Event_e evt) {
+    if (evt == Button::PRESS) {
+        m_anim->Right();
+    }
+    return evt != Button::LONG_PRESS;  // when long pressed, move to ConfigMenu display
+};
+
+// toggles between configured MINB=user and temporary MINB=0
+void Weather::Press(const Button::Event_e evt) {
+    static bool toggledDarkMode = false;
+    if (evt == Button::RELEASE) {
+        if (toggledDarkMode) {
+            // don't want to change anim mode when toggling dark mode
+            toggledDarkMode = false;
+            return;
+        }
+
+        if (++m_animMode >= ANIM_TOTAL) {
+            m_animMode = 0;
+        }
+        SetAnimator(CreateAnimator(m_pixels, m_settings, m_rtc,
+                                   (AnimatorType_e)m_animMode));
+        (*m_settings)["ANIM"] = m_animMode + 1;
+        m_pixels->Clear();
+        Joystick joy;
+#if FCOS_CARDCLOCK2
+        uint8_t pos = 0;
+        for (int i = 0; i < 0 + (m_anim->name.length() * 4); i++) {
+            m_pixels->Clear();
+            m_pixels->DrawText(0 - i, 3, m_anim->name, LIGHT_GRAY);
+            m_pixels->Show();
+            if (joy.WaitForButton(joy.press, 75)) {
+                ElapsedTime::Delay(25);
+            }
+        }
+#else
+        m_pixels->DrawText(0, 0, (*m_settings)["ANIM"], LIGHT_GRAY);
+        m_pixels->Show();
+        joy.WaitForButton(joy.press, 500);
+#endif
+        joy.WaitForNoButtonsPressed();
+        PrepareToSaveSettings();
+    } else if (evt == Button::LONG_PRESS) {
+        m_pixels->ToggleDarkMode();
+        toggledDarkMode = true;
+    }
 }
 
 void Weather::PrepareToSaveSettings() {

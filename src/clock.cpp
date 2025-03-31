@@ -117,13 +117,6 @@ void Clock::Press(const Button::Event_e evt) {
 }
 
 void Clock::DrawDigits(const RgbColor blendColor, char* text, int yPos) {
-    // char text[10];
-    // if ((*m_settings)["24HR"] == "24") {
-    //     sprintf(text, "%02d:%02d", m_rtc->Hour(), m_rtc->Minute());
-    // } else {
-    //     sprintf(text, "%2d:%02d", m_rtc->Hour12(), m_rtc->Minute());
-    // }
-    // int yPos = 0;
 #if FCOS_FOXIECLOCK
     m_pixels->DrawChar(0, text[0], m_anim->GetAdjustedDigitColor(0), m_anim->GetAdjustedDigitColorEnd(0));
     m_pixels->DrawChar(20, text[1], m_anim->GetAdjustedDigitColor(1), m_anim->GetAdjustedDigitColorEnd(1));
@@ -134,20 +127,24 @@ void Clock::DrawDigits(const RgbColor blendColor, char* text, int yPos) {
     if ((m_pixels->GetBrightness() >= 0.05f || (*m_settings)["MINB"] != "0")) {
     }
 #elif FCOS_CARDCLOCK || FCOS_CARDCLOCK2
-    // RgbColor digitColors[4] = {m_anim->digitColors[0], m_anim->digitColors[1],
-    //     m_anim->digitColors[2], m_anim->digitColors[3]};
+    RgbColor digitColors[8] = {
+        m_anim->GetAdjustedDigitColor(0), m_anim->GetAdjustedDigitColorEnd(0),
+        m_anim->GetAdjustedDigitColor(1), m_anim->GetAdjustedDigitColorEnd(1),
+        m_anim->GetAdjustedDigitColor(2), m_anim->GetAdjustedDigitColorEnd(2),
+        m_anim->GetAdjustedDigitColor(3), m_anim->GetAdjustedDigitColorEnd(3)
+    };
 
-    // if (blendColor != m_currentColor) {
-    //     for (int i = 0; i < 4; i++) {
-    //         digitColors[i] = blendColor.LinearBlend(digitColors[i], blendColor, 0.4F);
-    //     }
-    // }
+    if (blendColor != m_currentColor) {
+        for (int i = 0; i < 8; i++) {
+            digitColors[i] = blendColor.LinearBlend(digitColors[i], blendColor, 0.4F);
+        }
+    }
 
-    m_pixels->DrawChar(0, yPos, text[0], m_anim->GetAdjustedDigitColor(0), m_anim->GetAdjustedDigitColorEnd(0), true);
-    m_pixels->DrawChar(4, yPos, text[1], m_anim->GetAdjustedDigitColor(1), m_anim->GetAdjustedDigitColorEnd(1), true);
+    m_pixels->DrawChar(0, yPos, text[0], digitColors[0], digitColors[1], true);
+    m_pixels->DrawChar(4, yPos, text[1], digitColors[2], digitColors[3], true);
     //                         [2] is the colon
-    m_pixels->DrawChar(10, yPos, text[3], m_anim->GetAdjustedDigitColor(2), m_anim->GetAdjustedDigitColorEnd(2), true);
-    m_pixels->DrawChar(14, yPos, text[4], m_anim->GetAdjustedDigitColor(3), m_anim->GetAdjustedDigitColorEnd(3), true);
+    m_pixels->DrawChar(10, yPos, text[3], digitColors[4], digitColors[5], true);
+    m_pixels->DrawChar(14, yPos, text[4], digitColors[6], digitColors[7], true);
 #endif  // FCOS_CARDCLOCK || FCOS_CARDCLOCK2
     if (!m_pixels->IsDarkModeEnabled() || m_pixels->GetBrightness() >= 0.05f) {
         DrawSeparator(8, yPos);
