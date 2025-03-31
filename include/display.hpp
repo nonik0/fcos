@@ -77,6 +77,7 @@ class DisplayManager {
     size_t m_lastActiveDisplay{0};
     bool m_isTempDisplay{false};
     bool m_isFirstUpdate{true};
+    bool m_isDisplayBlanked{false};
 
     ElapsedTime m_timeSinceButtonPress;
     ElapsedTime m_sinceLastUpdate;
@@ -94,6 +95,10 @@ class DisplayManager {
     std::shared_ptr<Display> GetActive();
 
     void SetDefaultAndActivateDisplay(const size_t displayNum);
+
+    bool GetBlankingState();
+
+    void SetBlankingState(const bool isBlanked);
 
     void ActivateDisplay(const size_t displayNum);
 

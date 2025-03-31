@@ -21,6 +21,7 @@ static RgbColor DARK_RED(128, 0, 0);
 static RgbColor DARK_GREEN(0, 128, 0);
 static RgbColor DARK_BLUE(0, 0, 128);
 static RgbColor DARK_YELLOW(128, 128, 0);
+static RgbColor PALE_YELLOW(144, 144, 32);
 static RgbColor DARK_CYAN(0, 128, 128);
 static RgbColor DARK_MAGENTA(128, 0, 128);
 static RgbColor DARK_PURPLE(32, 0, 224);
@@ -44,6 +45,32 @@ enum ScrollDirection_e {
     SCROLL_DOWN = 1,
     SCROLL_RIGHT = 1,
     SCROLL_LEFT = -1,
+};
+
+enum WeatherConditions {
+    CLEAR,
+    PARTLY_CLOUDY,
+    CLOUDY,
+    RAINY,
+    THUNDERSTORM,
+    SNOWY,
+    HAIL,
+    SLEET,
+    WINDY,
+    FOGGY,
+    UNKNOWN,
+};
+
+enum MoonPhase {
+    NOT_NIGHT = -1,
+    NEW_MOON = 0,
+    WAXING_CRESCENT = 1,
+    FIRST_QUARTER = 2,
+    WAXING_GIBBOUS = 3,
+    FULL_MOON = 4,
+    WANING_GIBBOUS = 5,
+    LAST_QUARTER = 6,
+    WANING_CRESCENT = 7,
 };
 
 enum PixelsConfig_e {
@@ -156,15 +183,38 @@ class Pixels {
              const RgbColor color,
              const bool force = false);
 
-    int DrawText(int x, String text, const RgbColor color);
+    int DrawText(int x,
+                 String text,
+                 const RgbColor color,
+                 bool useSmallFont = false);
 
-    int DrawText(int x, int y, String text, const RgbColor color);
+    int DrawText(int x,
+                 int y,
+                 String text,
+                 const RgbColor color,
+                 bool useSmallFont = false);
 
-    int DrawChar(int x, char character, const RgbColor color);
-    int DrawChar(int x, char character, const RgbColor beginColor, const RgbColor endColor);
+    int DrawChar(int x,
+                 char character,
+                 const RgbColor color,
+                 bool useSmallFont = false);
+    int DrawChar(int x,
+                 char character,
+                 const RgbColor beginColor,
+                 const RgbColor endColor,
+                 bool useSmallFont = false);
 
-    int DrawChar(int x, int y, char character, const RgbColor color);
-    int DrawChar(int x, int y, char character, const RgbColor beginColor, const RgbColor endColor);
+    int DrawChar(int x,
+                 int y,
+                 char character,
+                 const RgbColor color,
+                 bool useSmallFont = false);
+    int DrawChar(int x,
+                 int y,
+                 char character,
+                 const RgbColor beginColor,
+                 const RgbColor endColor,
+                 bool useSmallFont = false);
 
     static RgbColor ColorWheel(uint8_t pos);
 
@@ -209,6 +259,32 @@ class Pixels {
     void DrawSecondLEDs(const int second,
                         const RgbColor color,
                         const int brightestLED = 0);  // 0,1,2
+
+    void DrawWeatherLEDs(const WeatherConditions type,
+                         const MoonPhase moonPhase,
+                         const int8_t cycle);
+
+    // TODO: private
+    void DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawMoonLEDs(int8_t startPos,
+                      int8_t len,
+                      MoonPhase moonPhase,
+                      int8_t cycle);
+
+    void DrawCloudyLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawPrecipLEDs(int8_t startPos,
+                        int8_t len,
+                        int8_t cycle,
+                        RgbColor color,
+                        RgbColor color2 = BLACK);
+
+    void DrawLightningLEDs(int8_t startPos, int8_t len, int8_t cycle);
+
+    void DrawWindLEDs(const int8_t cycle);
+
+    bool IsInWheelRange(const int8_t pos, const int8_t start, const int8_t end);
 #endif
     void Move(const int fromCol,
               const int fromRow,

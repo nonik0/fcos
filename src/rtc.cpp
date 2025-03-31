@@ -40,6 +40,17 @@ void Rtc::SetTime(uint8_t hour, uint8_t minute, uint8_t second) {
     GetTimeFromRTC();
 }
 
+void Rtc::SetDateTime(uint8_t day,
+                      uint8_t month,
+                      uint8_t weekday,
+                      uint8_t year,
+                      uint8_t hour,
+                      uint8_t minute,
+                      uint8_t second) {
+    m_rtc.setDateTime(day, day, month, weekday, year, hour, minute, second);
+    GetTimeFromRTC();
+}
+
 int Rtc::Conv24to12(int hour) {
     if (hour > 12) {
         hour -= 12;
@@ -69,6 +80,14 @@ int Rtc::GetTimezoneNumFromName(const String& name) {
         }
     }
     return 6;  // UTC 0; always return something valid
+}
+
+int Rtc::GetTimezoneUtcOffset() {
+    Timezone tz = m_timezones[(*m_settings)["TIMEZONE"]].tz;
+    time_t utc = mktime(&m_timeinfo);
+    time_t local = tz.toLocal(utc);
+    time_t diff = local - utc;
+    return diff / 60;
 }
 
 void Rtc::ForceNTPUpdate() {
@@ -109,6 +128,9 @@ void Rtc::GetTimeFromRTC() {
 
     m_rtc.getDateTime();
     if (m_rtc.getHour() < 24) {  // the RTC reports 33 initially
+        m_day = m_rtc.getDay();
+        m_month = m_rtc.getMonth();
+        m_year = m_rtc.getYear();
         m_hour = m_rtc.getHour();
         m_minute = m_rtc.getMinute();
         if (m_second != m_rtc.getSecond()) {
@@ -130,7 +152,10 @@ void Rtc::CheckNTPTime() {
                 m_timezones[selectedTimezone].tz.toLocal(mktime(&m_timeinfo));
             m_timeinfo = *localtime(&local);
 
-            SetTime(m_timeinfo.tm_hour, m_timeinfo.tm_min, m_timeinfo.tm_sec);
+            SetDateTime(m_timeinfo.tm_mday, m_timeinfo.tm_mon + 1,
+                        m_timeinfo.tm_wday, m_timeinfo.tm_year - 100,
+                        m_timeinfo.tm_hour, m_timeinfo.tm_min,
+                        m_timeinfo.tm_sec);
 
             TDPRINT(this,
                     "Got NTP time (%02d:%02d:%02d) (TZ: %s) next update in "

@@ -10,10 +10,12 @@
 #include <rtc.hpp>
 #include <set_time.hpp>
 #include <settings.hpp>
+#include <sun_moon.hpp>
 
 class Clock : public Display {
   private:
     std::shared_ptr<Rtc> m_rtc;
+    std::shared_ptr<SunMoon> m_sunMoon;
     size_t m_animMode{0};
     bool m_shouldSaveSettings{false};
 
@@ -26,7 +28,8 @@ class Clock : public Display {
     std::shared_ptr<Animator> m_anim;
 
   public:
-    Clock(std::shared_ptr<Rtc> rtc) : Display(), m_rtc(rtc) {}
+    Clock(std::shared_ptr<Rtc> rtc, std::shared_ptr<SunMoon> sunMoon)
+        : Display(), m_rtc(rtc), m_sunMoon(sunMoon) {}
 
     virtual void Activate();
     virtual void Update() override;
@@ -41,8 +44,10 @@ class Clock : public Display {
     virtual void Press(const Button::Event_e evt) override;
 
   private:
-    void DrawClockDigits(const RgbColor color);
-    void DrawSeparator(const int x, RgbColor color);
+    void DrawDigits(const RgbColor blendColor, char* text, int yPos);
+    void DrawClockDigits(const RgbColor blendColor);
+    void DrawSunDigits(const RgbColor blendColor);
+    void DrawSeparator(const int x, const int y);
     void PrepareToSaveSettings();
     void CheckIfWaitingToSaveSettings();
     void LoadSettings();

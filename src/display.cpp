@@ -31,11 +31,20 @@ void DisplayManager::Update() {
             m_displays[m_lastActiveDisplay]->Update();
         }
 
+        // TODO: any button press should clear blanking state
+        if (!m_isFirstUpdate && m_isDisplayBlanked) {
+            m_pixels->Clear(BLACK, true, true);
+            m_pixels->Show();
+            return;
+        }
+
         auto& cur = m_displays[m_activeDisplay];
         cur->Update();
         if (cur->IsDone() ||
             (cur->ShouldTimeout() && GetTimeSinceButtonPress() >= TIMEOUT_MS &&
-             m_activeDisplay != m_defaultDisplay)) {
+             (m_activeDisplay != m_defaultDisplay &&
+              m_activeDisplay !=
+                  2))) {  // TODO: remove hardcoded 2 for weather display
             cur->Timeout();
             cur->m_done = false;
             if (m_isTempDisplay) {
@@ -57,6 +66,14 @@ std::shared_ptr<Display> DisplayManager::GetActive() {
 void DisplayManager::SetDefaultAndActivateDisplay(const size_t displayNum) {
     m_defaultDisplay = displayNum;
     ActivateDisplay(displayNum);
+}
+
+bool DisplayManager::GetBlankingState() {
+    return m_isDisplayBlanked;
+}
+
+void DisplayManager::SetBlankingState(const bool isBlanked) {
+    m_isDisplayBlanked = isBlanked;
 }
 
 void DisplayManager::ActivateDisplay(const size_t displayNum) {

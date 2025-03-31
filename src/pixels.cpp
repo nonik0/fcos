@@ -108,6 +108,12 @@ void Pixels::Set(const int pos,
             }
         }
         RgbColor scaledColor = ScaleBrightness(color, adjustedBrightness);
+
+        // ensure color is not dimmed to off
+        scaledColor.R = (color.R > 0 && scaledColor.R == 0) ? 1 : scaledColor.R;
+        scaledColor.G = (color.G > 0 && scaledColor.G == 0) ? 1 : scaledColor.G;
+        scaledColor.B = (color.B > 0 && scaledColor.B == 0) ? 1 : scaledColor.B;
+
         m_neoPixels.SetPixelColor(pos, scaledColor);
     }
 }
@@ -120,35 +126,58 @@ void Pixels::Set(const int x,
     }
 }
 
-int Pixels::DrawText(int x, String text, const RgbColor color) {
-    return DrawText(x, 0, text, color);
+int Pixels::DrawText(int x,
+                     String text,
+                     const RgbColor color,
+                     bool useSmallFont) {
+    return DrawText(x, 0, text, color, useSmallFont);
 }
 
-int Pixels::DrawText(int x, int y, String text, const RgbColor color) {
+int Pixels::DrawText(int x,
+                     int y,
+                     String text,
+                     const RgbColor color,
+                     bool useSmallFont) {
     text.toUpperCase();
     int textWidth = 0;
 
     for (auto character : text) {
-        const int charWidth = DrawChar(x, y, character, color);
+        const int charWidth = DrawChar(x, y, character, color, useSmallFont);
         textWidth += charWidth;
         x += charWidth;
     }
     return textWidth;
 }
 
-int Pixels::DrawChar(int x, char character, const RgbColor color) {
+int Pixels::DrawChar(int x,
+                     char character,
+                     const RgbColor color,
+                     bool useSmallFont) {
     return DrawChar(x, 0, character, color, color);
 }
 
-int Pixels::DrawChar(int x, char character, const RgbColor beginColor, const RgbColor endColor) {
-    return DrawChar(x, 0, character, beginColor, endColor);
+int Pixels::DrawChar(int x,
+                     char character,
+                     const RgbColor beginColor,
+                     const RgbColor endColor,
+                     bool useSmallFont) {
+    return DrawChar(x, 0, character, beginColor, endColor, useSmallFont);
 }
 
-int Pixels::DrawChar(int x, int y, char character, const RgbColor color) {
-    return DrawChar(x, y, character, color, color);
+int Pixels::DrawChar(int x,
+                     int y,
+                     char character,
+                     const RgbColor color,
+                     bool useSmallFont) {
+    return DrawChar(x, y, character, color, color, useSmallFont);
 }
 
-int Pixels::DrawChar(int x, int y, char character, const RgbColor beginColor, const RgbColor endColor) {
+int Pixels::DrawChar(int x,
+                     int y,
+                     char character,
+                     const RgbColor beginColor,
+                     const RgbColor endColor,
+                     bool useSmallFont) {
     std::vector<uint8_t> charData;
     // clang-format off
         // --------------- 
@@ -156,25 +185,36 @@ int Pixels::DrawChar(int x, int y, char character, const RgbColor beginColor, co
         // ---------------
 #if FCOS_CARDCLOCK || FCOS_CARDCLOCK2
 #include "characters/cc.inc"
+#include "characters/cc3x4.inc"
         // show a ? for unknown characters
         if (charData.empty()) {
-            charData = {
-                1, 1, 0,
-                0, 0, 1,
-                0, 1, 0,
-                0, 0, 0,
-                0, 1, 0,
-            };
+            if (useSmallFont) {
+                charData = {
+                    1, 1, 0,
+                    0, 0, 1,
+                    0, 1, 0,
+                    0, 1, 0,
+                };
+            } else {
+                charData = {
+                    1, 1, 0,
+                    0, 0, 1,
+                    0, 1, 0,
+                    0, 0, 0,
+                    0, 1, 0,
+                };
+            }
         }
 
-        const int charWidth = charData.size() / CHAR_HEIGHT;
+        int charHeight = useSmallFont ? 4 : CHAR_HEIGHT;
+        const int charWidth = charData.size() / charHeight;
         const uint8_t* data = &charData[0];
         
         // Count total active pixels for gradient calculation
         int totalActivePixels = 0;
         int activePixelCount = 0;
         const uint8_t* countData = &charData[0];
-        for (int row = 0; row < CHAR_HEIGHT; ++row) {
+        for (int row = 0; row < charHeight; ++row) {
             for (int column = 0; column < charWidth; ++column) {
                 if (*countData) {
                     totalActivePixels++;
@@ -233,12 +273,12 @@ int Pixels::DrawChar(int x, int y, char character, const RgbColor beginColor, co
 
     const uint8_t* data = &charData[0];
     const size_t charWidth = charData.size();
-    
+
     if (m_isPXLmode) {
         // For PXL mode, implement a gradient across all active pixels
         int totalActivePixels = 0;
         int activePixelCount = 0;
-        
+
         // First count active pixels
         const uint8_t* countData = &charData[0];
         for (size_t pos = 0; pos < charWidth; ++pos) {
@@ -247,31 +287,35 @@ int Pixels::DrawChar(int x, int y, char character, const RgbColor beginColor, co
             }
             countData++;
         }
-        
+
         // Then draw with gradient
         for (size_t pos = 0; pos < charWidth; ++pos) {
             if (*data) {
-                float progress = (float)activePixelCount / (totalActivePixels - 1);
+                float progress =
+                    (float)activePixelCount / (totalActivePixels - 1);
                 if (totalActivePixels == 1) {
-                    progress = 0.5f; // If only one pixel, use middle color
+                    progress = 0.5f;  // If only one pixel, use middle color
                 }
-                
-                RgbColor gradientColor = RgbColor::LinearBlend(beginColor, endColor, progress);
+
+                RgbColor gradientColor =
+                    RgbColor::LinearBlend(beginColor, endColor, progress);
                 Set(x + pos, gradientColor);
                 activePixelCount++;
-                
+
                 // in edge-lit mode in the darkness, only use 1 LED per
                 // digit
-                if (!m_isPXLmode && m_currentBrightness == 0.0f && m_useDarkMode) {
+                if (!m_isPXLmode && m_currentBrightness == 0.0f &&
+                    m_useDarkMode) {
                     break;
                 }
             }
             data++;
         }
     } else {
-        // For edge-lit mode, use beginColor for first LED and endColor for second LED
+        // For edge-lit mode, use beginColor for first LED and endColor for
+        // second LED
         bool firstLEDSet = false;
-        
+
         for (size_t pos = 0; pos < charWidth; ++pos) {
             if (*data) {
                 if (!firstLEDSet) {
@@ -282,7 +326,7 @@ int Pixels::DrawChar(int x, int y, char character, const RgbColor beginColor, co
                     // Only use two LEDs in edge-lit mode
                     break;
                 }
-                
+
                 // in edge-lit mode in the darkness, only use 1 LED per
                 // digit
                 if (m_currentBrightness == 0.0f && m_useDarkMode) {
@@ -449,6 +493,214 @@ void Pixels::DrawSecondLEDs(const int second,
 #endif
 }
 #endif
+
+void Pixels::DrawSunnyLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    for (int i = 0; i < len; i++) {
+        int8_t pos = (startPos + i) % RING_SIZE;
+
+        DrawRingLED(0, pos, YELLOW);
+        DrawRingLED(1, pos, YELLOW);
+        if (cycle >= 6) {
+            if (pos % 2 == 0) {
+                DrawRingLED(2, pos, YELLOW);
+            }
+        }
+        else if (pos % 2 == 1) {
+            DrawRingLED(2, pos, YELLOW);
+        }
+    }
+}
+
+void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8_t cycle) {
+    int ring0Pos = 0, ring0Len = 0, ring1Pos = 0, ring1Len = 0, ring2Pos = 0, ring2Len = 0;
+
+    switch (moonPhase) {
+        case NEW_MOON:
+            ring0Len = RING_SIZE;
+            break;
+        case WAXING_CRESCENT:
+        case WANING_CRESCENT:
+            ring2Pos = WAXING_CRESCENT ? 5 : 11;
+            ring2Len = 7;
+            ring1Pos = ring2Pos + 1 % RING_SIZE;
+            ring1Len = ring2Len - 2;
+            ring0Pos = ring1Pos + 1 % RING_SIZE;
+            ring0Len = ring1Len - 2;
+            break;
+        case FIRST_QUARTER:
+        case LAST_QUARTER:
+            ring2Pos = ring1Pos = ring0Pos = FIRST_QUARTER ? 5 : 11;
+            ring2Len = ring1Len = ring0Len = 7;
+            break;
+        case WAXING_GIBBOUS:
+        case WANING_GIBBOUS:
+            ring2Pos = WAXING_GIBBOUS ? 5 : 11;
+            ring2Len = 7;
+            ring1Pos = ring2Pos - 1 % RING_SIZE;
+            ring1Len = ring2Len + 2;
+            ring0Len = RING_SIZE;
+            break;
+        case FULL_MOON:
+            ring2Len = RING_SIZE;
+            ring1Len = RING_SIZE;
+            ring0Len = RING_SIZE;
+            break;
+        default:
+            break;
+    }
+
+    for (int i = 0; i < len; i++) {
+        int8_t pos = (startPos + i) % RING_SIZE;
+
+        if (ring0Len > 0 && IsInWheelRange(pos, ring0Pos, ring0Pos + ring0Len)) {
+            DrawRingLED(0, pos, PALE_YELLOW);
+        }
+        if (ring1Len > 0 && IsInWheelRange(pos, ring1Pos, ring1Pos + ring1Len)) {
+            DrawRingLED(1, pos, PALE_YELLOW);
+        }
+        if (ring2Len > 0 && IsInWheelRange(pos, ring2Pos, ring2Pos + ring2Len)) {
+            DrawRingLED(2, pos, PALE_YELLOW);
+        }
+    }
+}
+
+bool Pixels::IsInWheelRange(const int8_t pos, const int8_t start, const int8_t end) {
+    int8_t endMod = end % RING_SIZE;
+    if (start < endMod) {
+        return pos >= start && pos < endMod;
+    }
+    return pos >= start || pos < endMod;
+}
+
+void Pixels::DrawCloudyLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    const int8_t Offset0 = 0;
+    const int8_t Offset1 = 4;
+    const int8_t Offset2 = 8;
+    const int8_t BaseCloudWidth = 5;
+
+    int8_t endPos = (startPos + len) % RING_SIZE;
+    for (int8_t pos = 0; pos < RING_SIZE; pos++) {
+        // only draw the clouds in the specified range
+        if (!IsInWheelRange(pos, startPos, endPos)) {
+            continue;
+        }
+
+        int8_t ring0Start = (cycle + Offset0) % RING_SIZE;
+        int8_t ring1Start = (cycle + Offset1) % RING_SIZE;
+        int8_t ring2Start = (cycle + Offset2) % RING_SIZE;
+        RgbColor ring0Color = IsInWheelRange(pos, ring0Start, ring0Start + BaseCloudWidth + 0) ? GRAY : DARK_GRAY;
+        RgbColor ring1Color = IsInWheelRange(pos, ring1Start, ring1Start + BaseCloudWidth + 1) ? GRAY : DARK_GRAY;
+        RgbColor ring2Color = IsInWheelRange(pos, ring2Start, ring2Start + BaseCloudWidth + 2) ? GRAY : DARK_GRAY;
+        DrawRingLED(0, pos, ring0Color);
+        DrawRingLED(1, pos, ring1Color);
+        DrawRingLED(2, pos, ring2Color);
+    }
+}
+
+void Pixels::DrawPrecipLEDs(int8_t startPos, int8_t len, int8_t cycle, RgbColor color, RgbColor color2) {
+    for (int i = 0; i < len; i++) {
+        int pos = (startPos + i) % RING_SIZE;
+        int ring = (cycle + i) % NUM_RINGS;
+        DrawRingLED(ring, pos, color);
+
+        if (color2 != BLACK) {
+            DrawRingLED((ring + 1) % NUM_RINGS, pos, color2);
+        }
+    }
+}
+
+void Pixels::DrawLightningLEDs(int8_t startPos, int8_t len, int8_t cycle) {
+    for (int i = 0; i < len; i++) {
+        int pos = (startPos + i) % RING_SIZE;
+
+        if (random(0, 40) == 0) {
+            DrawRingLED(0, pos, LIGHT_YELLOW);
+            DrawRingLED(1, pos, LIGHT_YELLOW);
+            DrawRingLED(2, pos, LIGHT_YELLOW);
+            i++; // no adjacent bolts
+        }
+    }
+}
+
+void Pixels::DrawWindLEDs(const int8_t cycle) {
+    const int8_t Offset0 = 10;
+    const int8_t Offset1 = 5;
+    const int8_t Offset2 = 0;
+    const int8_t BaseGustWidth = 5;
+
+    for (int8_t pos = RING_SIZE - 1; pos >= 0; pos--) {
+        int8_t ring0Start = (cycle + Offset0) % RING_SIZE;
+        int8_t ring1Start = (cycle + Offset1) % RING_SIZE;
+        int8_t ring2Start = (cycle + Offset2) % RING_SIZE;
+        RgbColor ring0Color = IsInWheelRange(pos, ring0Start, ring0Start + BaseGustWidth + 0) ? DARK_CYAN : BLACK;
+        RgbColor ring1Color = IsInWheelRange(pos, ring1Start, ring1Start + BaseGustWidth + 1) ? DARK_CYAN : BLACK;
+        RgbColor ring2Color = IsInWheelRange(pos, ring2Start, ring2Start + BaseGustWidth + 2) ? DARK_CYAN : BLACK;
+        DrawRingLED(0, pos, ring0Color);
+        DrawRingLED(1, pos, ring1Color);
+        DrawRingLED(2, pos, ring2Color);
+    }
+}
+
+void Pixels::DrawWeatherLEDs(const WeatherConditions type, const MoonPhase moonPhase, const int8_t cycle) {
+    switch (type) {
+        case CLEAR:
+            if (moonPhase == NOT_NIGHT) {
+                DrawSunnyLEDs(0, RING_SIZE, cycle);
+            } else {
+                DrawMoonLEDs(0, RING_SIZE, moonPhase, cycle);
+            }
+            break;
+        case PARTLY_CLOUDY:
+            if (moonPhase == NOT_NIGHT) {
+                DrawSunnyLEDs(9, 5, cycle);
+            } else {
+                DrawMoonLEDs(9, 5, moonPhase, cycle);
+            }
+            DrawCloudyLEDs(2, 7, cycle);
+            break;
+        case RAINY:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, BLUE);
+            break;
+        case SLEET:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, BLUE, CYAN);
+            break;
+        case SNOWY:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, WHITE);
+            break;
+        case HAIL:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, CYAN, CYAN);
+            break;
+        case CLOUDY:
+            DrawCloudyLEDs(0, RING_SIZE, cycle);
+            break;
+        case THUNDERSTORM:
+            DrawCloudyLEDs(8, 7, cycle);
+            DrawPrecipLEDs(3, 5, cycle, BLUE);
+            DrawLightningLEDs(3, 5, cycle);
+            break;
+        case WINDY:
+            DrawWindLEDs(cycle);
+            break;
+        case FOGGY:
+            for (int pos = 0; pos < RING_SIZE; pos++) {
+                DrawRingLED(0, pos, DARK_GRAY);
+                DrawRingLED(1, pos, DARK_GRAY);
+                DrawRingLED(2, pos, DARK_GRAY);
+            }
+            break;
+        default:
+            for (int pos = 0; pos < RING_SIZE; pos++) {
+                DrawRingLED(0, pos, {1,0,0});
+                DrawRingLED(1, pos, {1,0,0});
+                DrawRingLED(2, pos, {1,0,0});
+            }
+            break;
+    }
+}
 
 void Pixels::Move(const int fromCol,
                   const int fromRow,

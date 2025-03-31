@@ -8,13 +8,16 @@
 #include <hardware.hpp>
 #include <memory>
 #include <pixels.hpp>
+#include <rest_server.hpp>
 #include <rtc.hpp>
 #include <settings.hpp>
+#include <weather.hpp>
 
 void setup() {
     auto settings = std::make_shared<Settings>();
     auto pixels = std::make_shared<Pixels>(settings);
     auto rtc = std::make_shared<Rtc>(settings);
+    auto sunMoon = std::make_shared<SunMoon>(settings, rtc);
     auto joy = std::make_shared<Joystick>();
     auto develUpdates = std::make_shared<DevelUpdates>(pixels);
 
@@ -27,10 +30,20 @@ void setup() {
         std::make_shared<DisplayManager>(pixels, settings, rtc, joy);
 
     displayMgr->Add(std::make_shared<SetTime>(rtc));
-    displayMgr->Add(std::make_shared<Clock>(rtc));
+
+    // TODO: eventually support multiple default displays? rename to primary display or something similar?
+#ifdef FORECAST
+    auto weather = std::make_shared<Weather>(rtc, sunMoon);
+    displayMgr->Add(weather);
+    auto restServer = std::make_shared<RestServer>(displayMgr, rtc, sunMoon, weather); 
+#else
+    displayMgr->Add(std::make_shared<Clock>(rtc, sunMoon));
+    auto restServer = std::make_shared<RestServer>(displayMgr, rtc, sunMoon); 
+    #endif
+    
     displayMgr->Add(std::make_shared<ConfigMenu>());
 
-    // 0 = SetTime   <=>   1 = Clock   <=>   2 = ConfigMenu
+    // 0 = SetTime   <=>   1 = Clock/Weather   <=>   3 = ConfigMenu
     displayMgr->SetDefaultAndActivateDisplay(1);
 
     for (;;) {  // forever, instead of loop(), because I avoid globals ;)
@@ -39,6 +52,7 @@ void setup() {
         joy->Update();
         develUpdates->Update();
         displayMgr->Update();
+        restServer->Update();
         yield();  // allow the ESP platform tasks to run
     }
 }

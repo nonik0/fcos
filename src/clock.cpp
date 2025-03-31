@@ -32,6 +32,7 @@ void Clock::Update() {
     m_pixels->DrawMinuteLED(m_rtc->Minute(), m_anim->digitColors[1]);
     m_pixels->DrawHourLED(m_rtc->Hour12(), m_anim->GetColonColor());
     DrawClockDigits(m_currentColor);
+    DrawSunDigits(m_currentColor);
 
 #endif
 
@@ -115,14 +116,14 @@ void Clock::Press(const Button::Event_e evt) {
     }
 }
 
-void Clock::DrawClockDigits(const RgbColor color) {
-    char text[10];
-    if ((*m_settings)["24HR"] == "24") {
-        sprintf(text, "%02d:%02d", m_rtc->Hour(), m_rtc->Minute());
-    } else {
-        sprintf(text, "%2d:%02d", m_rtc->Hour12(), m_rtc->Minute());
-    }
-    int yPos = 0;
+void Clock::DrawDigits(const RgbColor blendColor, char* text, int yPos) {
+    // char text[10];
+    // if ((*m_settings)["24HR"] == "24") {
+    //     sprintf(text, "%02d:%02d", m_rtc->Hour(), m_rtc->Minute());
+    // } else {
+    //     sprintf(text, "%2d:%02d", m_rtc->Hour12(), m_rtc->Minute());
+    // }
+    // int yPos = 0;
 #if FCOS_FOXIECLOCK
     m_pixels->DrawChar(0, text[0], m_anim->GetAdjustedDigitColor(0), m_anim->GetAdjustedDigitColorEnd(0));
     m_pixels->DrawChar(20, text[1], m_anim->GetAdjustedDigitColor(1), m_anim->GetAdjustedDigitColorEnd(1));
@@ -133,27 +134,67 @@ void Clock::DrawClockDigits(const RgbColor color) {
     if ((m_pixels->GetBrightness() >= 0.05f || (*m_settings)["MINB"] != "0")) {
     }
 #elif FCOS_CARDCLOCK || FCOS_CARDCLOCK2
-#if FCOS_CARDCLOCK2
-    yPos = 3;
-#endif
-    m_pixels->DrawChar(0, yPos, text[0], m_anim->GetAdjustedDigitColor(0), m_anim->GetAdjustedDigitColorEnd(0));
-    m_pixels->DrawChar(4, yPos, text[1], m_anim->GetAdjustedDigitColor(1), m_anim->GetAdjustedDigitColorEnd(1));
+    // RgbColor digitColors[4] = {m_anim->digitColors[0], m_anim->digitColors[1],
+    //     m_anim->digitColors[2], m_anim->digitColors[3]};
+
+    // if (blendColor != m_currentColor) {
+    //     for (int i = 0; i < 4; i++) {
+    //         digitColors[i] = blendColor.LinearBlend(digitColors[i], blendColor, 0.4F);
+    //     }
+    // }
+
+    m_pixels->DrawChar(0, yPos, text[0], m_anim->GetAdjustedDigitColor(0), m_anim->GetAdjustedDigitColorEnd(0), true);
+    m_pixels->DrawChar(4, yPos, text[1], m_anim->GetAdjustedDigitColor(1), m_anim->GetAdjustedDigitColorEnd(1), true);
     //                         [2] is the colon
-    m_pixels->DrawChar(10, yPos, text[3], m_anim->GetAdjustedDigitColor(2), m_anim->GetAdjustedDigitColorEnd(2));
-    m_pixels->DrawChar(14, yPos, text[4], m_anim->GetAdjustedDigitColor(3), m_anim->GetAdjustedDigitColorEnd(3));
+    m_pixels->DrawChar(10, yPos, text[3], m_anim->GetAdjustedDigitColor(2), m_anim->GetAdjustedDigitColorEnd(2), true);
+    m_pixels->DrawChar(14, yPos, text[4], m_anim->GetAdjustedDigitColor(3), m_anim->GetAdjustedDigitColorEnd(3), true);
 #endif  // FCOS_CARDCLOCK || FCOS_CARDCLOCK2
     if (!m_pixels->IsDarkModeEnabled() || m_pixels->GetBrightness() >= 0.05f) {
-        DrawSeparator(8, m_anim->GetAdjustedColonColor());
+        DrawSeparator(8, yPos);
     } else {
 #if FCOS_FOXIECLOCK
         // m_pixels->DrawChar(8, yPos, ':', m_anim->GetColonColor());
 #elif FCOS_CARDCLOCK || FCOS_CARDCLOCK2
-        m_pixels->DrawChar(8, yPos, ':', m_anim->GetAdjustedColonColor(), m_anim->GetAdjustedColonColorEnd());
+        //m_pixels->DrawChar(8, yPos, ':', m_anim->GetAdjustedColonColor(), m_anim->GetAdjustedColonColorEnd(), true);
+        m_pixels->DrawChar(8, yPos, ':');
 #endif
     }
 }
 
-void Clock::DrawSeparator(const int x, RgbColor color) {
+void Clock::DrawClockDigits(const RgbColor blendColor) {
+    char text[10];
+    if ((*m_settings)["24HR"] == "24") {
+        sprintf(text, "%02d:%02d", m_rtc->Hour(), m_rtc->Minute());
+    } else {
+        sprintf(text, "%2d:%02d", m_rtc->Hour12(), m_rtc->Minute());
+    }
+
+    DrawDigits(blendColor, text, 1);
+}
+
+void Clock::DrawSunDigits(const RgbColor blendColor) {
+    int sunrise = m_sunMoon->getNextSunrise();
+    int sunset = m_sunMoon->getNextSunset();
+    int minIntoDay = m_rtc->Hour() * 60 + m_rtc->Minute();
+    bool isNight = minIntoDay >= sunset || minIntoDay < sunrise;
+    bool showSunrise = isNight
+        ? (m_rtc->Second() % 10) < 8
+        : (m_rtc->Second() % 10) >= 8;
+
+    char text[10];
+    RgbColor shiftColor = showSunrise ? RED : BLUE;
+    uint8_t hour = showSunrise ? sunrise / 60 : sunset / 60;
+    uint8_t minute = showSunrise ? sunrise % 60 : sunset % 60;
+
+    if ((*m_settings)["24HR"] != "24") {
+        hour = (hour - 1) % 12 + 1;
+    }
+
+    sprintf(text, "%2d:%02d", hour, minute);
+    DrawDigits(shiftColor, text, 6);
+}
+
+void Clock::DrawSeparator(const int x, const int y) {
     if (m_rtc->Second() % 2 && !m_blinkerRunning) {
         m_blinkerRunning = true;
         m_blinkerTimer.Reset();
@@ -184,8 +225,8 @@ void Clock::DrawSeparator(const int x, RgbColor color) {
     m_pixels->Set(x, 1, bottomColor);
     m_pixels->Set(x, 3, topColor);
 #elif FCOS_CARDCLOCK2
-    m_pixels->Set(x, 3 + 1, bottomColor);
-    m_pixels->Set(x, 3 + 3, topColor);
+    m_pixels->Set(x, y + 1, bottomColor);
+    m_pixels->Set(x, y + 3, topColor);
 #endif
 }
 
