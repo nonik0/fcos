@@ -37,9 +37,5 @@ void DevelUpdates::InitializeOTA() {
 }
 
 String DevelUpdates::GetUniqueMDNSName() {
-    #ifdef WEATHER
-        return "CardClock-Weather";
-    #else
-        return "CardClock";
-    #endif
-    }
+    return "FoxieClock_" + String(WiFi.localIP()[3], DEC);
+}

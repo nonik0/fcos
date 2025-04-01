@@ -20,6 +20,7 @@ void setup() {
     auto sunMoon = std::make_shared<SunMoon>(settings, rtc);
     auto joy = std::make_shared<Joystick>();
     auto develUpdates = std::make_shared<DevelUpdates>(pixels);
+    auto weather = std::make_shared<Weather>(rtc, sunMoon);
 
     DoHardwareStartupTests(pixels, settings, rtc, joy);
 
@@ -30,22 +31,15 @@ void setup() {
         std::make_shared<DisplayManager>(pixels, settings, rtc, joy);
 
     displayMgr->Add(std::make_shared<SetTime>(rtc));
-
-    // TODO: eventually support multiple default displays? rename to primary display or something similar?
-#ifdef WEATHER
-    auto weather = std::make_shared<Weather>(rtc, sunMoon);
-    displayMgr->Add(weather);
-    auto restServer = std::make_shared<RestServer>(displayMgr, rtc, sunMoon, weather); 
-#else
     displayMgr->Add(std::make_shared<Clock>(rtc, sunMoon));
-    auto restServer = std::make_shared<RestServer>(displayMgr, rtc, sunMoon); 
-    #endif
-    
+    displayMgr->Add(weather);
     displayMgr->Add(std::make_shared<ConfigMenu>());
 
-    // 0 = SetTime   <=>   1 = Clock/Weather   <=>   3 = ConfigMenu
+    auto restServer = std::make_shared<RestServer>(displayMgr, rtc, sunMoon, weather); 
+    
+    // 0 = SetTime   <=>   1 = Clock   <=>   2 = Weather   <=>   3 = ConfigMenu
     displayMgr->SetDefaultAndActivateDisplay(1);
-
+    
     for (;;) {  // forever, instead of loop(), because I avoid globals ;)
         ShowSerialStatusMessage(pixels, rtc);
         rtc->Update();

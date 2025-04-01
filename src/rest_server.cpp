@@ -21,15 +21,32 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
 }
 
 void RestServer::Update() {
+    CheckWifi();
     m_webServer.handleClient();
 }
 
+void RestServer::CheckWifi() {
+    if (m_sinceLastWifiCheck.Ms() > m_wifiCheckInterval) {
+        m_sinceLastWifiCheck.Reset();
+
+        try {
+            if (WiFi.status() != WL_CONNECTED) {
+                WiFi.disconnect();
+                WiFi.reconnect();
+                m_wifiDisconnects++;
+                log_w("Reconnected to WiFi");
+            } else {
+                m_wifiCheckInterval = 60 * 1000;
+            }
+        } catch (const std::exception& e) {
+            m_wifiCheckInterval =
+                10 * 60 * 1000;  // fallback to default interval on exception
+        }
+    }
+}
+
 void RestServer::HandleIndex() {
-#ifdef WEATHER
-    m_webServer.send(200, "text/plain", "CC2-WEATHER");
-#else
-    m_webServer.send(200, "text/plain", "CC2-CLOCK");
-#endif
+    m_webServer.send(200, "text/plain", "CC2");
 }
 
 void RestServer::HandleDateTime() {
@@ -64,17 +81,10 @@ void RestServer::HandleDisplay() {
 
         m_dispManager->SetBlankingState(!display);
 
-#ifdef WEATHER
-        // Wire.beginTransmission(0x13);
-        // Wire.write((uint8_t)0x00);
-        // Wire.write((uint8_t)display);
-        // Wire.endTransmission();
-#else
         Wire.beginTransmission(0x13);
         Wire.write((uint8_t)0x00);
         Wire.write((uint8_t)display);
         Wire.endTransmission();
-#endif
     }
 
     m_webServer.send(200, "text/plain", display ? "on" : "off");
