@@ -31,6 +31,7 @@ class RestServer {
     void HandleIndex();
     void HandleDateTime();
     void HandleDisplay();
+    void HandleMessage();
     void HandleMoonPhase();
     void HandleWeather();
 };

@@ -13,6 +13,7 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
     m_webServer.on("/", [this]() { this->HandleIndex(); });
     m_webServer.on("/datetime", [this]() { this->HandleDateTime(); });
     m_webServer.on("/display", [this]() { this->HandleDisplay(); });
+    m_webServer.on("/message", [this]() { this->HandleMessage(); });
     m_webServer.on("/moonphase", [this]() { this->HandleMoonPhase(); });
     m_webServer.on("/weather", [this]() { this->HandleWeather(); });
     m_webServer.begin();
@@ -97,6 +98,30 @@ void RestServer::HandleDisplay() {
     }
 
     m_webServer.send(200, "text/plain", display ? "on" : "off");
+}
+
+void RestServer::HandleMessage() {
+    String newMessage = "";
+
+    if (m_webServer.hasArg("plain"))
+    {
+      newMessage = m_webServer.arg("plain");
+    }
+    else if (m_webServer.hasArg("message"))
+    {
+      newMessage = m_webServer.arg("message");
+    }
+    else if (!m_webServer.hasArg("plain")) {
+        m_webServer.send(400, "text/plain", "No message string provided");
+        return;
+    }
+
+    Wire.beginTransmission(0x13);
+    Wire.write((uint8_t)0x01);
+    Wire.write(newMessage.c_str());
+    Wire.endTransmission();
+
+    m_webServer.send(200, "text/plain", newMessage);
 }
 
 void RestServer::HandleMoonPhase() {
