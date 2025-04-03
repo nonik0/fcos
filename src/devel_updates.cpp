@@ -37,5 +37,14 @@ void DevelUpdates::InitializeOTA() {
 }
 
 String DevelUpdates::GetUniqueMDNSName() {
-    return "FoxieClock_" + String(WiFi.localIP()[3], DEC);
+    // hardcode for now
+    int ipPart = WiFi.localIP()[3];
+    switch (ipPart) {
+        case 41:
+            return "CardClock-Left";
+        case 34:
+            return "CardClock-Right";
+        default:
+            return "CardClock-New";
+    }
 }

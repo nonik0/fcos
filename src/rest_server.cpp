@@ -21,7 +21,7 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
 }
 
 void RestServer::Update() {
-    CheckWifi();
+    //CheckWifi();
     m_webServer.handleClient();
 }
 
@@ -46,7 +46,16 @@ void RestServer::CheckWifi() {
 }
 
 void RestServer::HandleIndex() {
-    m_webServer.send(200, "text/plain", "CC2");
+    // hardcode for now
+    int ipPart = WiFi.localIP()[3];
+    switch (ipPart) {
+        case 41:
+            m_webServer.send(200, "text/plain", "CC2-L");
+        case 34:
+            m_webServer.send(200, "text/plain", "CC2-R");
+        default:
+            m_webServer.send(200, "text/plain", "CC2-N");
+    }
 }
 
 void RestServer::HandleDateTime() {
@@ -56,9 +65,9 @@ void RestServer::HandleDateTime() {
     }
 
     char response[100];
-    snprintf(response, sizeof(response), "%d/%d/%d %02d:%02d:%02d",
+    snprintf(response, sizeof(response), "Date: 20%d/%02d/%02d\nTime: %02d:%02d:%02d\nTZ Offset: %d\n",
              m_rtc->Year(), m_rtc->Month(), m_rtc->Day(), m_rtc->Hour(),
-             m_rtc->Minute(), m_rtc->Second());
+             m_rtc->Minute(), m_rtc->Second(), m_rtc->GetTimezoneUtcOffset());
 
     m_webServer.send(200, "text/plain", response);
 }
