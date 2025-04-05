@@ -15,6 +15,7 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
     m_webServer.on("/display", [this]() { this->HandleDisplay(); });
     m_webServer.on("/message", [this]() { this->HandleMessage(); });
     m_webServer.on("/moonphase", [this]() { this->HandleMoonPhase(); });
+    m_webServer.on("/scrollspeed", [this]() { this->HandleScrollSpeed(); });
     m_webServer.on("/weather", [this]() { this->HandleWeather(); });
     m_webServer.begin();
 
@@ -22,7 +23,7 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
 }
 
 void RestServer::Update() {
-    //CheckWifi();
+    CheckWifi();
     m_webServer.handleClient();
 }
 
@@ -65,10 +66,16 @@ void RestServer::HandleDateTime() {
         return;
     }
 
-    char response[100];
-    snprintf(response, sizeof(response), "Date: 20%d/%02d/%02d\nTime: %02d:%02d:%02d\nTZ Offset: %d\n",
+    int sunrise = m_sunMoon->getNextSunrise();
+    int sunset = m_sunMoon->getNextSunset();
+
+    char response[500];
+    snprintf(response, sizeof(response),
+             "Date: 20%d/%02d/%02d\nTime: %02d:%02d:%02d\nTZ Offset: "
+             "%d\nSunrise: %02d:%02d\nSunset: %02d:%02d\n",
              m_rtc->Year(), m_rtc->Month(), m_rtc->Day(), m_rtc->Hour(),
-             m_rtc->Minute(), m_rtc->Second(), m_rtc->GetTimezoneUtcOffset());
+             m_rtc->Minute(), m_rtc->Second(), m_rtc->GetTimezoneUtcOffset(),
+             sunrise / 60, sunrise % 60, sunset / 60, sunset % 60);
 
     m_webServer.send(200, "text/plain", response);
 }
@@ -103,15 +110,11 @@ void RestServer::HandleDisplay() {
 void RestServer::HandleMessage() {
     String newMessage = "";
 
-    if (m_webServer.hasArg("plain"))
-    {
-      newMessage = m_webServer.arg("plain");
-    }
-    else if (m_webServer.hasArg("message"))
-    {
-      newMessage = m_webServer.arg("message");
-    }
-    else if (!m_webServer.hasArg("plain")) {
+    if (m_webServer.hasArg("plain")) {
+        newMessage = m_webServer.arg("plain");
+    } else if (m_webServer.hasArg("message")) {
+        newMessage = m_webServer.arg("message");
+    } else if (!m_webServer.hasArg("plain")) {
         m_webServer.send(400, "text/plain", "No message string provided");
         return;
     }
@@ -122,6 +125,27 @@ void RestServer::HandleMessage() {
     Wire.endTransmission();
 
     m_webServer.send(200, "text/plain", newMessage);
+}
+
+void RestServer::HandleScrollSpeed() {
+    uint8_t speed = 0;
+    if (m_webServer.hasArg("plain")) {
+        speed = m_webServer.arg("plain").toInt();
+    } else if (m_webServer.hasArg("speed")) {
+        speed = m_webServer.arg("speed").toInt();
+    } else {
+        m_webServer.send(400, "text/plain", "No speed string provided");
+        return;
+    }
+    speed = constrain(speed, 0, 100);
+    ;
+
+    Wire.beginTransmission(0x13);
+    Wire.write((uint8_t)0x02);
+    Wire.write(speed);
+    Wire.endTransmission();
+
+    m_webServer.send(200, "text/plain", String(speed));
 }
 
 void RestServer::HandleMoonPhase() {

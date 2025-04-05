@@ -8,45 +8,22 @@ class SunMoon {
     std::shared_ptr<Rtc> m_rtc;
     std::shared_ptr<Settings> m_settings;
     SunSet m_sun;
-
-    // hacK: year and month are never updated, just calculate julian date from day offset
-    int m_year{0};
-    int m_month{0};
-    int m_riseDay{0};
-    int m_setDay{0};
-    int m_sunrise{0};
-    int m_sunset{0};
     
   public:
-    SunMoon(std::shared_ptr<Settings> settings, std::shared_ptr<Rtc> rtc) : m_settings(settings), m_rtc(rtc) {
-      m_year = m_rtc->Year();
-      m_month = m_rtc->Month();
-      m_riseDay = m_rtc->Day();
-      m_setDay = m_rtc->Day();
-
-      int utcOffset = m_rtc->GetTimezoneUtcOffset() / 60;
-      m_sun.setPosition(LATITUDE, LONGITUDE, utcOffset);
-      m_sun.setCurrentDate(m_year, m_month, m_riseDay);
-    }
+    SunMoon(std::shared_ptr<Settings> settings, std::shared_ptr<Rtc> rtc) : m_settings(settings), m_rtc(rtc) {}
 
     int getNextSunrise() {
-        // when past sunrise of current day, increment rise day and recalculate sunrise
-        if (m_rtc->Day() == m_riseDay && (m_rtc->Hour() * 60 + m_rtc->Minute()) > m_sunrise) {
-          m_sun.setCurrentDate(m_year, m_month, m_riseDay++); // this works at end of month because converted to julian date internally
-          m_sunrise = m_sun.calcSunrise();
-        }
+        m_sun.setPosition(LATITUDE, LONGITUDE, m_rtc->GetTimezoneUtcOffset() / 60);
+        m_sun.setCurrentDate(m_rtc->Year(), m_rtc->Month(), m_rtc->Day());
 
-        return m_sunrise;
+        return m_sun.calcSunrise();
     }
 
     int getNextSunset() {
-        // when past sunset of current day, increment set day and recalculate sunset
-        if (m_rtc->Day() == m_setDay && (m_rtc->Hour() * 60 + m_rtc->Minute()) > m_sunset) {
-          m_setDay++; // sunrise calls setCurrentDate first
-          m_sunset = m_sun.calcSunset();
-        }
+        m_sun.setPosition(LATITUDE, LONGITUDE, m_rtc->GetTimezoneUtcOffset() / 60);
+        m_sun.setCurrentDate(m_rtc->Year(), m_rtc->Month(), m_rtc->Day());
 
-        return m_sunset;
+        return m_sun.calcSunset();
     }
 
     MoonPhase getMoonPhase() {
