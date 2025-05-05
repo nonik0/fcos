@@ -119,10 +119,28 @@ void RestServer::HandleMessage() {
         return;
     }
 
-    Wire.beginTransmission(0x13);
-    Wire.write((uint8_t)0x01);
-    Wire.write(newMessage.c_str());
-    Wire.endTransmission();
+    // Wire.beginTransmission(0x13);
+    // Wire.write((uint8_t)0x01);
+    // Wire.write(newMessage.c_str());
+    // Wire.endTransmission();
+
+    const size_t chunkSize = 31; // 32-byte, max chunk size for I2C transmission (-1 for end byte)
+    size_t messageLength = newMessage.length();
+    for (size_t i = 0; i < messageLength; i += chunkSize) {
+        Wire.beginTransmission(0x13);
+        Wire.write((uint8_t)0x01);
+  
+        size_t remaining = messageLength - i;
+        size_t currentChunkSize = remaining > chunkSize ? chunkSize : remaining;
+  
+        Wire.write((const uint8_t*)newMessage.substring(i, i + currentChunkSize).c_str(), currentChunkSize);
+  
+        if (i + currentChunkSize >= messageLength) {
+          Wire.write('\n');
+        }
+  
+        Wire.endTransmission();
+      }
 
     m_webServer.send(200, "text/plain", newMessage);
 }
