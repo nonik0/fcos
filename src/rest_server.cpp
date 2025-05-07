@@ -13,7 +13,8 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
     m_webServer.on("/", [this]() { this->HandleIndex(); });
     m_webServer.on("/datetime", [this]() { this->HandleDateTime(); });
     m_webServer.on("/display", [this]() { this->HandleDisplay(); });
-    m_webServer.on("/message", [this]() { this->HandleMessage(); });
+    m_webServer.on("/message", [this]() { this->HandleMessage(0x13); });
+    m_webServer.on("/message2", [this]() { this->HandleMessage(0x14); });
     m_webServer.on("/moonphase", [this]() { this->HandleMoonPhase(); });
     m_webServer.on("/scrollspeed", [this]() { this->HandleScrollSpeed(); });
     m_webServer.on("/weather", [this]() { this->HandleWeather(); });
@@ -102,12 +103,17 @@ void RestServer::HandleDisplay() {
         Wire.write((uint8_t)0x00);
         Wire.write((uint8_t)display);
         Wire.endTransmission();
+
+        Wire.beginTransmission(0x14);
+        Wire.write((uint8_t)0x00);
+        Wire.write((uint8_t)display);
+        Wire.endTransmission();
     }
 
     m_webServer.send(200, "text/plain", display ? "on" : "off");
 }
 
-void RestServer::HandleMessage() {
+void RestServer::HandleMessage(uint8_t addr) {
     String newMessage = "";
 
     if (m_webServer.hasArg("plain")) {
@@ -119,15 +125,10 @@ void RestServer::HandleMessage() {
         return;
     }
 
-    // Wire.beginTransmission(0x13);
-    // Wire.write((uint8_t)0x01);
-    // Wire.write(newMessage.c_str());
-    // Wire.endTransmission();
-
     const size_t chunkSize = 31; // 32-byte, max chunk size for I2C transmission (-1 for end byte)
     size_t messageLength = newMessage.length();
     for (size_t i = 0; i < messageLength; i += chunkSize) {
-        Wire.beginTransmission(0x13);
+        Wire.beginTransmission(addr);
         Wire.write((uint8_t)0x01);
   
         size_t remaining = messageLength - i;
