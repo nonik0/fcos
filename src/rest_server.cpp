@@ -15,8 +15,11 @@ RestServer::RestServer(std::shared_ptr<DisplayManager> dispManager,
     m_webServer.on("/display", [this]() { this->HandleDisplay(); });
     m_webServer.on("/message", [this]() { this->HandleMessage(0x13); });
     m_webServer.on("/message2", [this]() { this->HandleMessage(0x14); });
+    m_webServer.on("/message3", [this]() { this->HandleMessage(0x15); });
     m_webServer.on("/moonphase", [this]() { this->HandleMoonPhase(); });
-    m_webServer.on("/scrollspeed", [this]() { this->HandleScrollSpeed(); });
+    m_webServer.on("/scrollspeed", [this]() { this->HandleScrollSpeed(0x13); });
+    m_webServer.on("/scrollspeed2", [this]() { this->HandleScrollSpeed(0x14); });
+    m_webServer.on("/scrollspeed3", [this]() { this->HandleScrollSpeed(0x15); });
     m_webServer.on("/weather", [this]() { this->HandleWeather(); });
     m_webServer.begin();
 
@@ -146,7 +149,7 @@ void RestServer::HandleMessage(uint8_t addr) {
     m_webServer.send(200, "text/plain", newMessage);
 }
 
-void RestServer::HandleScrollSpeed() {
+void RestServer::HandleScrollSpeed(uint8_t addr) {
     uint8_t speed = 0;
     if (m_webServer.hasArg("plain")) {
         speed = m_webServer.arg("plain").toInt();
@@ -159,7 +162,7 @@ void RestServer::HandleScrollSpeed() {
     speed = constrain(speed, 0, 100);
     ;
 
-    Wire.beginTransmission(0x13);
+    Wire.beginTransmission(addr);
     Wire.write((uint8_t)0x02);
     Wire.write(speed);
     Wire.endTransmission();
