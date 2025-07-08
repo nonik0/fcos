@@ -525,11 +525,11 @@ void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8
             break;
         case WAXING_CRESCENT:
         case WANING_CRESCENT:
-            ring2Pos = WAXING_CRESCENT ? 5 : 11;
+            ring2Pos = (moonPhase == WANING_CRESCENT) ? 5 : 11;
             ring2Len = 7;
-            ring1Pos = ring2Pos + 1 % RING_SIZE;
+            ring1Pos = (ring2Pos + 1) % RING_SIZE;
             ring1Len = ring2Len - 2;
-            ring0Pos = ring1Pos + 1 % RING_SIZE;
+            ring0Pos = (ring1Pos + 1) % RING_SIZE;
             ring0Len = ring1Len - 2;
             break;
         case FIRST_QUARTER:
@@ -539,9 +539,9 @@ void Pixels::DrawMoonLEDs(int8_t startPos, int8_t len, MoonPhase moonPhase, int8
             break;
         case WAXING_GIBBOUS:
         case WANING_GIBBOUS:
-            ring2Pos = WAXING_GIBBOUS ? 5 : 11;
+            ring2Pos = (moonPhase == WANING_GIBBOUS) ? 5 : 11;
             ring2Len = 7;
-            ring1Pos = ring2Pos - 1 % RING_SIZE;
+            ring1Pos = (ring2Pos - 1) % RING_SIZE;
             ring1Len = ring2Len + 2;
             ring0Len = RING_SIZE;
             break;
